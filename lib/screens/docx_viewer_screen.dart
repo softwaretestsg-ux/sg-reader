@@ -220,6 +220,25 @@ class _DocxViewerScreenState extends State<DocxViewerScreen> {
             },
           ),
           IconButton(
+            icon: Icon(
+              _hasUnsavedEdits ? Icons.save : Icons.save_outlined,
+              color: _hasUnsavedEdits ? SGTheme.accent : SGTheme.textSecondary,
+            ),
+            tooltip: "Save Word Document",
+            onPressed: () async {
+              await _docService.saveDocxParagraphs(widget.document.path, _paragraphs);
+              setState(() => _hasUnsavedEdits = false);
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("✅ Word document saved to storage."),
+                  backgroundColor: Color(0xFF4F7A4A),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.share_outlined, color: SGTheme.accent),
             tooltip: "Share Word Document",
             onPressed: _shareDocument,

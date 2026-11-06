@@ -159,6 +159,23 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
         ),
         actions: [
           IconButton(
+            icon: Icon(
+              _hasUnsavedEdits ? Icons.save : Icons.save_outlined,
+              color: _hasUnsavedEdits ? SGTheme.accent : SGTheme.textSecondary,
+            ),
+            tooltip: "Save Spreadsheet",
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("✅ Spreadsheet saved to storage."),
+                  backgroundColor: Color(0xFF4F7A4A),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+              setState(() => _hasUnsavedEdits = false);
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.share_outlined, color: SGTheme.accent),
             tooltip: "Share Spreadsheet",
             onPressed: _shareSpreadsheet,

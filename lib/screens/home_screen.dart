@@ -20,6 +20,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final DocumentService _docService = DocumentService();
   final SecurityService _securityService = SecurityService();
   List<DocumentFile> _recentDocs = [];
@@ -147,10 +148,10 @@ class _HomeScreenState extends State<HomeScreen> {
         : _recentDocs.where((d) => d.type == _selectedFilter).toList();
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: SGTheme.bgDark,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(62),
-        child: const BrandBanner(),
+      appBar: BrandBanner(
+        onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
       ),
       drawer: Drawer(
         backgroundColor: SGTheme.surface,

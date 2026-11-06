@@ -198,6 +198,27 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
         ),
         actions: [
           IconButton(
+            icon: Icon(
+              _hasUnsavedEdits ? Icons.save : Icons.save_outlined,
+              color: _hasUnsavedEdits ? SGTheme.accent : SGTheme.textSecondary,
+            ),
+            tooltip: "Save Presentation",
+            onPressed: () async {
+              if (_slides.isNotEmpty) {
+                await _docService.savePptxSlide(widget.document.path, _currentSlideIndex, _slides[_currentSlideIndex]);
+              }
+              setState(() => _hasUnsavedEdits = false);
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("✅ Presentation saved to storage."),
+                  backgroundColor: Color(0xFF4F7A4A),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.share_outlined, color: SGTheme.accent),
             tooltip: "Share Presentation",
             onPressed: _sharePresentation,

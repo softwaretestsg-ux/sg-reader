@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' show Rect;
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -7,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:archive/archive.dart';
 import 'package:xml/xml.dart';
 import 'package:excel/excel.dart' as xls;
+import 'package:syncfusion_flutter_pdf/pdf.dart';
 import '../models/document_file.dart';
 
 class DocumentService {
@@ -107,12 +109,68 @@ class DocumentService {
   }
 
   // ==========================================
-  // 1. PDF OPERATIONS (READ / SAVE)
+  // 1. PDF OPERATIONS (READ / SAVE / EDIT / ANNOTATE)
   // ==========================================
 
   Future<void> savePdfBytes(String filePath, List<int> bytes) async {
     final file = File(filePath);
     await file.writeAsBytes(bytes, flush: true);
+  }
+
+  /// Adds an annotation, note, or endorsement stamp to a PDF document and saves it
+  Future<void> addPdfAnnotation(
+    String filePath, {
+    required int pageIndex,
+    required String text,
+    String position = 'top',
+    String author = 'Social Googol Verified',
+  }) async {
+    final file = File(filePath);
+    final bytes = await file.readAsBytes();
+    final document = PdfDocument(inputBytes: bytes);
+
+    if (pageIndex >= 0 && pageIndex < document.pages.count) {
+      final page = document.pages[pageIndex];
+      final font = PdfStandardFont(PdfFontFamily.helvetica, 12, style: PdfFontStyle.bold);
+      final subFont = PdfStandardFont(PdfFontFamily.helvetica, 9);
+      final accentColor = PdfColor(176, 74, 36); // #B04A24 Terracotta
+      final textColor = PdfColor(31, 25, 19);
+
+      final double pageWidth = page.size.width;
+      final double pageHeight = page.size.height;
+      final double bannerWidth = (pageWidth - 60).clamp(100.0, 800.0);
+      final double bannerHeight = 38;
+      final double x = 30;
+      final double y = position == 'top' ? 24 : (pageHeight - bannerHeight - 24);
+
+      // Draw background container
+      page.graphics.drawRectangle(
+        brush: PdfSolidBrush(PdfColor(254, 248, 243)),
+        pen: PdfPen(accentColor, width: 1.5),
+        bounds: Rect.fromLTWH(x, y, bannerWidth, bannerHeight),
+      );
+
+      // Draw note text
+      page.graphics.drawString(
+        text,
+        font,
+        brush: PdfSolidBrush(accentColor),
+        bounds: Rect.fromLTWH(x + 10, y + 4, bannerWidth - 20, 16),
+      );
+
+      // Draw timestamp / endorsement subtitle
+      final dateStr = DateTime.now().toLocal().toString().split('.')[0];
+      page.graphics.drawString(
+        "$author • $dateStr",
+        subFont,
+        brush: PdfSolidBrush(textColor),
+        bounds: Rect.fromLTWH(x + 10, y + 20, bannerWidth - 20, 14),
+      );
+    }
+
+    final updatedBytes = document.saveSync();
+    document.dispose();
+    await file.writeAsBytes(updatedBytes, flush: true);
   }
 
   // ==========================================

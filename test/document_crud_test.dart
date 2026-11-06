@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:archive/archive.dart';
 import 'package:excel/excel.dart' as xls;
+import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:sg_reader/services/document_service.dart';
 
 void main() {
@@ -117,7 +118,40 @@ void main() {
     });
 
     // -------------------------------------------------------------
-    // 4. PDF & SHARE INTEGRITY TEST
+    // 4. PDF EDIT & ANNOTATION TEST (READ, EDIT, SAVE, VERIFY)
+    // -------------------------------------------------------------
+    test('PDF: Create -> Add Annotation Note -> Save -> Verify Proof', () async {
+      final pdfFile = File('${tempDir.path}/test_pdf_edit.pdf');
+      final document = PdfDocument();
+      document.pages.add().graphics.drawString(
+        "Initial PDF Page",
+        PdfStandardFont(PdfFontFamily.helvetica, 12),
+      );
+      final initialBytes = document.saveSync();
+      document.dispose();
+      await pdfFile.writeAsBytes(initialBytes);
+
+      expect(pdfFile.existsSync(), true);
+
+      // 1. ADD ANNOTATION & SAVE
+      const noteText = "Social Googol Endorsement Verified";
+      await docService.addPdfAnnotation(
+        pdfFile.path,
+        pageIndex: 0,
+        text: noteText,
+        position: 'top',
+      );
+
+      // 2. VERIFY PROOF (Fresh read from disk)
+      final reloadedBytes = await pdfFile.readAsBytes();
+      final reloadedDoc = PdfDocument(inputBytes: reloadedBytes);
+      expect(reloadedDoc.pages.count, 1);
+      reloadedDoc.dispose();
+      expect(reloadedBytes.length > initialBytes.length, true);
+    });
+
+    // -------------------------------------------------------------
+    // 5. PDF & SHARE INTEGRITY TEST
     // -------------------------------------------------------------
     test('PDF & Share: File creation, byte integrity, and share readiness', () async {
       final pdfFile = File('${tempDir.path}/test_doc.pdf');
