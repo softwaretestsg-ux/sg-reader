@@ -24,8 +24,8 @@ if (flutterVersionName == null) {
 
 android {
     namespace "com.socialgoogol.sgreader"
-    compileSdk 34
-    ndkVersion flutter.ndkVersion
+    compileSdk 35
+    ndkVersion "25.1.8937393"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -43,7 +43,7 @@ android {
     defaultConfig {
         applicationId "com.socialgoogol.sgreader"
         minSdkVersion 21
-        targetSdkVersion 34
+        targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }
