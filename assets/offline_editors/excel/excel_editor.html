@@ -21,14 +21,14 @@
       height: 100vh;
       width: 100vw;
     }
-    #top_bar {
+    #top_header {
+      background-color: #1F1913;
+      border-bottom: 1px solid #2E251E;
+      padding: 8px 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 12px;
-      background-color: #1F1913;
-      border-bottom: 1px solid #2E251E;
-      font-size: 13px;
+      z-index: 10;
     }
     .badge {
       background-color: #2E2218;
@@ -39,7 +39,7 @@
       font-size: 11px;
       font-weight: 600;
     }
-    .btn-action {
+    .btn-save {
       background-color: #B04A24;
       color: #FFFFFF;
       border: none;
@@ -49,13 +49,78 @@
       font-weight: bold;
       cursor: pointer;
     }
+    /* Touch-Friendly Cell & Formula Bar */
+    #cell_editor_bar {
+      background-color: #261F18;
+      border-bottom: 1px solid #3D3126;
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 10;
+    }
+    .formula-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #active_cell_badge {
+      background-color: #171310;
+      border: 1px solid #B04A24;
+      color: #DD8B53;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 13px;
+      font-weight: bold;
+      min-width: 48px;
+      text-align: center;
+    }
+    #cell_input {
+      flex: 1;
+      background-color: #171310;
+      border: 1px solid #3D3126;
+      color: #FFFFFF;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+    }
+    #cell_input:focus {
+      border-color: #DD8B53;
+    }
+    .action-strip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .action-strip::-webkit-scrollbar {
+      display: none;
+    }
+    .cell-btn {
+      background-color: #1F1913;
+      border: 1px solid #3D3126;
+      color: #F2ECE1;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .cell-btn:active {
+      background-color: #B04A24;
+      color: #FFFFFF;
+    }
     #grid_container {
       flex: 1;
       width: 100%;
-      height: calc(100vh - 46px);
+      height: 100%;
       background-color: #FFFFFF;
+      position: relative;
     }
-    /* Mobile tweaks for xspreadsheet */
     .x-spreadsheet {
       height: 100% !important;
       width: 100% !important;
@@ -77,8 +142,8 @@
       border: 4px solid #2E251E;
       border-top: 4px solid #DD8B53;
       border-radius: 50%;
-      width: 36px;
-      height: 36px;
+      width: 38px;
+      height: 38px;
       animation: spin 1s linear infinite;
     }
     @keyframes spin {
@@ -88,19 +153,35 @@
   </style>
 </head>
 <body>
-  <div id="top_bar">
+  <div id="top_header">
     <div style="display:flex; align-items:center; gap:8px;">
       <span class="badge" id="doc_format_badge">EXCEL</span>
-      <span id="doc_status" style="color:#A89F91;">Offline Sandbox</span>
+      <span id="doc_meta" style="color:#A89F91; font-size:12px;">Spreadsheet Suite</span>
     </div>
-    <button class="btn-action" id="btn_save" onclick="saveDocument()">Save File</button>
+    <button class="btn-save" onclick="saveDocument()">Save File</button>
+  </div>
+
+  <!-- Dedicated Mobile Cell & Column Editor -->
+  <div id="cell_editor_bar">
+    <div class="formula-row">
+      <span id="active_cell_badge">A1</span>
+      <input type="text" id="cell_input" placeholder="Tap any cell to edit value or =formula..." oninput="onCellInputChanged(this.value)">
+    </div>
+    <div class="action-strip">
+      <button class="cell-btn" onclick="insertRowBelow()">+ Row Below</button>
+      <button class="cell-btn" onclick="insertColRight()">+ Col Right</button>
+      <button class="cell-btn" onclick="deleteCurrentRow()">🗑 Delete Row</button>
+      <button class="cell-btn" onclick="clearCurrentCell()">Clear Cell</button>
+      <button class="cell-btn" onclick="insertFormula('SUM')">=SUM()</button>
+      <button class="cell-btn" onclick="insertFormula('AVERAGE')">=AVERAGE()</button>
+    </div>
   </div>
 
   <div id="grid_container"></div>
 
   <div id="loading_overlay">
     <div class="spinner"></div>
-    <div style="margin-top:14px; color:#DD8B53; font-weight:600; font-size:14px;">Loading Spreadsheet...</div>
+    <div style="margin-top:14px; color:#DD8B53; font-weight:600; font-size:14px;">Opening All Pages & Sheets...</div>
     <div style="margin-top:6px; color:#A89F91; font-size:11px;">100% On-Device Processing</div>
   </div>
 
@@ -110,9 +191,16 @@
     var xs = null;
     var currentFormat = 'xlsx';
     var originalFileName = '';
+    var activeR = 0;
+    var activeC = 0;
+    var activeSheetIndex = 0;
 
-    function initGrid() {
+    function initGrid(maxRows, maxCols) {
       var container = document.getElementById('grid_container');
+      var totalRows = Math.max(maxRows || 150, 150);
+      var totalCols = Math.max(maxCols || 30, 30);
+
+      container.innerHTML = '';
       xs = x_spreadsheet('#grid_container', {
         showToolbar: true,
         showGrid: true,
@@ -122,30 +210,178 @@
           width: () => container.clientWidth,
         },
         row: {
-          len: 100,
-          height: 25,
+          len: totalRows,
+          height: 34, // Touch-friendly height
         },
         col: {
-          len: 26,
-          width: 90,
-          indexWidth: 40,
-          minWidth: 50,
+          len: totalCols,
+          width: 100, // Finger-friendly width
+          indexWidth: 44,
+          minWidth: 60,
         }
       });
-      xs.change(function(data) {
-        // notify change if needed
+
+      // Listen to cell selection
+      xs.on('cell-selected', function(cell, ri, ci) {
+        activeR = ri;
+        activeC = ci;
+        updateActiveCellUI(cell, ri, ci);
       });
+
+      xs.change(function() {
+        var cell = xs.cell(activeR, activeC);
+        updateActiveCellUI(cell, activeR, activeC);
+      });
+    }
+
+    function indexToColName(c) {
+      var s = '';
+      var num = c + 1;
+      while (num > 0) {
+        var rem = (num - 1) % 26;
+        s = String.fromCharCode(65 + rem) + s;
+        num = Math.floor((num - 1) / 26);
+      }
+      return s;
+    }
+
+    function updateActiveCellUI(cell, ri, ci) {
+      var colName = indexToColName(ci);
+      var rowName = ri + 1;
+      var cellRef = colName + rowName;
+      document.getElementById('active_cell_badge').innerText = cellRef;
+
+      var val = '';
+      if (cell) {
+        if (cell.formula) {
+          val = '=' + cell.formula;
+        } else if (cell.text != null) {
+          val = cell.text;
+        }
+      }
+      var input = document.getElementById('cell_input');
+      if (document.activeElement !== input) {
+        input.value = val;
+      }
+    }
+
+    function onCellInputChanged(val) {
+      if (!xs) return;
+      var trimmed = val.trim();
+      if (trimmed.startsWith('=')) {
+        xs.cellText(activeR, activeC, '').reRender();
+        // Set formula
+        var data = xs.getData();
+        if (data[activeSheetIndex] && data[activeSheetIndex].rows[activeR]) {
+          var cells = data[activeSheetIndex].rows[activeR].cells || {};
+          if (!cells[activeC]) cells[activeC] = {};
+          cells[activeC].formula = trimmed.substring(1);
+          cells[activeC].text = val;
+          xs.loadData(data);
+        }
+      } else {
+        xs.cellText(activeR, activeC, val).reRender();
+      }
+    }
+
+    function insertRowBelow() {
+      if (!xs) return;
+      var data = xs.getData();
+      var sheet = data[activeSheetIndex];
+      if (!sheet || !sheet.rows) return;
+      
+      var newRows = {};
+      var rKeys = Object.keys(sheet.rows).map(Number).sort((a,b) => a-b);
+      rKeys.forEach(function(r) {
+        if (r <= activeR) {
+          newRows[r] = sheet.rows[r];
+        } else {
+          newRows[r + 1] = sheet.rows[r];
+        }
+      });
+      newRows[activeR + 1] = { cells: {} };
+      sheet.rows = newRows;
+      sheet.row = sheet.row || {};
+      sheet.row.len = (sheet.row.len || 100) + 1;
+      xs.loadData(data);
+      activeR = activeR + 1;
+      updateActiveCellUI(null, activeR, activeC);
+    }
+
+    function insertColRight() {
+      if (!xs) return;
+      var data = xs.getData();
+      var sheet = data[activeSheetIndex];
+      if (!sheet || !sheet.rows) return;
+      
+      Object.keys(sheet.rows).forEach(function(r) {
+        var row = sheet.rows[r];
+        if (row && row.cells) {
+          var newCells = {};
+          Object.keys(row.cells).map(Number).sort((a,b) => a-b).forEach(function(c) {
+            if (c <= activeC) {
+              newCells[c] = row.cells[c];
+            } else {
+              newCells[c + 1] = row.cells[c];
+            }
+          });
+          row.cells = newCells;
+        }
+      });
+      sheet.col = sheet.col || {};
+      sheet.col.len = (sheet.col.len || 30) + 1;
+      xs.loadData(data);
+      activeC = activeC + 1;
+      updateActiveCellUI(null, activeR, activeC);
+    }
+
+    function deleteCurrentRow() {
+      if (!xs) return;
+      var data = xs.getData();
+      var sheet = data[activeSheetIndex];
+      if (!sheet || !sheet.rows) return;
+
+      var newRows = {};
+      Object.keys(sheet.rows).map(Number).sort((a,b) => a-b).forEach(function(r) {
+        if (r < activeR) {
+          newRows[r] = sheet.rows[r];
+        } else if (r > activeR) {
+          newRows[r - 1] = sheet.rows[r];
+        }
+      });
+      sheet.rows = newRows;
+      xs.loadData(data);
+      updateActiveCellUI(xs.cell(activeR, activeC), activeR, activeC);
+    }
+
+    function clearCurrentCell() {
+      if (!xs) return;
+      xs.cellText(activeR, activeC, '').reRender();
+      document.getElementById('cell_input').value = '';
+    }
+
+    function insertFormula(fnName) {
+      var input = document.getElementById('cell_input');
+      input.value = '=' + fnName + '(';
+      input.focus();
+      onCellInputChanged(input.value);
     }
 
     // Convert SheetJS workbook to x-spreadsheet data format
     function stox(wb) {
       var out = [];
+      var maxOverallR = 0;
+      var maxOverallC = 0;
+
       wb.SheetNames.forEach(function(name) {
         var o = { name: name, rows: {} };
         var ws = wb.Sheets[name];
         if (!ws) return;
         var ref = ws['!ref'] || 'A1:A1';
         var range = XLSX.utils.decode_range(ref);
+        if (range.e.r > maxOverallR) maxOverallR = range.e.r;
+        if (range.e.c > maxOverallC) maxOverallC = range.e.c;
+
         for (var R = range.s.r; R <= range.e.r; ++R) {
           var row = {};
           var hasCells = false;
@@ -163,7 +399,7 @@
         }
         out.push(o);
       });
-      return out;
+      return { sheets: out, maxRows: maxOverallR + 30, maxCols: maxOverallC + 10 };
     }
 
     // Convert x-spreadsheet data format to SheetJS workbook
@@ -199,7 +435,6 @@
       return out;
     }
 
-    // API called by Flutter via runJavaScript
     window.loadDocument = function(base64Data, filename) {
       try {
         originalFileName = filename || 'document.xlsx';
@@ -208,18 +443,19 @@
         document.getElementById('doc_format_badge').innerText = currentFormat.toUpperCase();
 
         var wb = XLSX.read(base64Data, { type: 'base64' });
-        var xdata = stox(wb);
+        var parsed = stox(wb);
 
-        if (!xs) initGrid();
+        initGrid(parsed.maxRows, parsed.maxCols);
 
-        if (xdata.length > 0) {
-          xs.loadData(xdata);
+        if (parsed.sheets.length > 0) {
+          xs.loadData(parsed.sheets);
         } else {
           xs.loadData([{ name: 'Sheet1', rows: {} }]);
         }
 
         document.getElementById('loading_overlay').style.display = 'none';
         notifyFlutter('loaded', { sheetCount: wb.SheetNames.length });
+        updateActiveCellUI(xs.cell(0, 0), 0, 0);
       } catch (err) {
         console.error('Error in loadDocument:', err);
         document.getElementById('loading_overlay').innerHTML = 
@@ -229,7 +465,6 @@
       }
     };
 
-    // Save document and trigger Flutter bridge
     window.saveDocument = function() {
       try {
         if (!xs) return;
@@ -259,8 +494,7 @@
     }
 
     window.addEventListener('DOMContentLoaded', function() {
-      initGrid();
-      // Inform Flutter that WebView engine is ready to receive document
+      initGrid(150, 30);
       setTimeout(function() {
         notifyFlutter('ready', {});
       }, 300);

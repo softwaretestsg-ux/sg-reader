@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../constants/branding.dart';
 import '../constants/theme.dart';
 import '../models/document_file.dart';
@@ -20,6 +22,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const MethodChannel _intentChannel = MethodChannel('com.socialgoogol.sgreader/open_file');
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final DocumentService _docService = DocumentService();
   final SecurityService _securityService = SecurityService();
@@ -33,6 +36,50 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadData();
     _checkAppUpdate();
+    _initIncomingIntentHandler();
+  }
+
+  void _initIncomingIntentHandler() {
+    // 1. Check if opened via "Open With" intent on cold launch
+    _intentChannel.invokeMethod<Map>('getInitialFile').then((fileMap) {
+      if (fileMap != null && mounted) {
+        _handleIncomingFileMap(Map<String, dynamic>.from(fileMap));
+      }
+    }).catchError((e) {
+      debugPrint("Error fetching initial file intent: $e");
+    });
+
+    // 2. Listen for intent when app is already open in background
+    _intentChannel.setMethodCallHandler((call) async {
+      if (call.method == 'onFileOpened' && call.arguments != null) {
+        if (mounted) {
+          _handleIncomingFileMap(Map<String, dynamic>.from(call.arguments));
+        }
+      }
+    });
+  }
+
+  Future<void> _handleIncomingFileMap(Map<String, dynamic> fileMap) async {
+    final filePath = fileMap['path'] as String?;
+    final fileName = fileMap['name'] as String? ?? 'Document';
+
+    if (filePath == null) return;
+    final file = File(filePath);
+    if (!await file.exists()) return;
+
+    final type = DocumentFile.detectType(fileName.isNotEmpty ? fileName : filePath);
+    final size = await file.length();
+
+    final doc = DocumentFile(
+      path: filePath,
+      name: fileName,
+      sizeInBytes: size,
+      type: type,
+      lastOpened: DateTime.now(),
+    );
+
+    await _docService.saveRecentDocument(doc);
+    _openDocument(doc);
   }
 
   Future<void> _loadData() async {

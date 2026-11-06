@@ -53,7 +53,8 @@ jobs:
 
       - name: Build Official Signed Release APK
         run: |
-          flutter build apk --release --android-skip-build-dependency-validation
+          BUILD_NUM=${{ github.run_number }}
+          flutter build apk --release --build-number=$BUILD_NUM --build-name="1.0.$BUILD_NUM" --android-skip-build-dependency-validation
           cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/SG-Reader.apk"
 
       - name: Upload Artifact

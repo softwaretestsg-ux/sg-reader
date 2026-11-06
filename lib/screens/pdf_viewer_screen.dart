@@ -350,6 +350,8 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
               canShowScrollStatus: true,
               enableDoubleTapZooming: true,
               enableTextSelection: true,
+              pageLayoutMode: PdfPageLayoutMode.continuous,
+              scrollDirection: PdfScrollDirection.vertical,
               onDocumentLoaded: (PdfDocumentLoadedDetails details) {
                 setState(() {
                   _totalPages = details.document.pages.count;
