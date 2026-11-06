@@ -79,9 +79,34 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _pickAndOpenFile() async {
-    final doc = await _docService.pickDocument();
-    if (doc != null) {
-      _openDocument(doc);
+    try {
+      final doc = await _docService.pickDocument();
+      if (doc != null) {
+        if (doc.type == DocumentType.unknown) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: SGTheme.surface,
+              content: Text(
+                "Selected file '${doc.name}' is not a supported format. Please select a PDF, Excel (.xlsx, .csv), Word (.docx), or PowerPoint (.pptx) file.",
+                style: const TextStyle(color: SGTheme.text),
+              ),
+              duration: const Duration(seconds: 4),
+            ),
+          );
+          return;
+        }
+        _openDocument(doc);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFFE5534B),
+          content: Text("Error accessing file: $e"),
+          duration: const Duration(seconds: 4),
+        ),
+      );
     }
   }
 

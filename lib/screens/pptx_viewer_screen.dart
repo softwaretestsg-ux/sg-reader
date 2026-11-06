@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/theme.dart';
 import '../models/document_file.dart';
 import '../services/document_service.dart';
 
@@ -40,32 +41,38 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
   }
 
   @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: SGTheme.bgDark,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: SGTheme.surface,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               widget.document.name,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: SGTheme.text),
               overflow: TextOverflow.ellipsis,
             ),
             if (_slides.isNotEmpty)
               Text(
                 "Slide ${_currentSlideIndex + 1} of ${_slides.length}",
-                style: const TextStyle(fontSize: 11, color: Color(0xFF34D399)),
+                style: const TextStyle(fontSize: 11, color: SGTheme.accent),
               ),
           ],
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
+          ? const Center(child: CircularProgressIndicator(color: SGTheme.accent))
           : _slides.isEmpty
               ? const Center(
-                  child: Text("No slide content detected in presentation.", style: TextStyle(color: Colors.white70)),
+                  child: Text("No slide content detected in presentation.", style: TextStyle(color: SGTheme.textSecondary)),
                 )
               : PageView.builder(
                   controller: _pageController,
@@ -80,13 +87,13 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
                     return Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Card(
-                        color: const Color(0xFF1E293B),
+                        color: SGTheme.surface,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
-                          side: const BorderSide(color: Colors.white12),
+                          side: const BorderSide(color: SGTheme.border),
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.all(20.0),
+                          padding: const EdgeInsets.all(22.0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -96,18 +103,22 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF3B82F6),
-                                      borderRadius: BorderRadius.circular(12),
+                                      color: SGTheme.accentDeep,
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
                                       "SLIDE ${slideIdx + 1}",
-                                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
-                                  const Icon(Icons.slideshow_outlined, color: Colors.white54),
+                                  const Icon(Icons.slideshow_outlined, color: SGTheme.textMuted),
                                 ],
                               ),
-                              const Divider(color: Colors.white12, height: 24),
+                              const Divider(color: SGTheme.border, height: 24),
                               Expanded(
                                 child: ListView.builder(
                                   itemCount: slideLines.length,
@@ -119,10 +130,10 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
                                       child: Text(
                                         line,
                                         style: TextStyle(
-                                          color: isHeading ? const Color(0xFF34D399) : Colors.white,
-                                          fontSize: isHeading ? 18 : 14,
+                                          color: isHeading ? SGTheme.accent : SGTheme.text,
+                                          fontSize: isHeading ? 17 : 14,
                                           fontWeight: isHeading ? FontWeight.bold : FontWeight.normal,
-                                          height: 1.4,
+                                          height: 1.45,
                                         ),
                                       ),
                                     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/theme.dart';
 import '../models/document_file.dart';
 import '../services/document_service.dart';
 
@@ -16,7 +17,6 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
   bool _isLoading = true;
   Map<String, List<List<dynamic>>> _sheetsData = {};
   String _currentSheet = '';
-  bool _hasUnsavedChanges = false;
 
   @override
   void initState() {
@@ -47,32 +47,40 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text("Edit Cell [R${rowIndex + 1}:C${colIndex + 1}]"),
+        backgroundColor: SGTheme.surface,
+        title: Text(
+          "Edit Cell [R${rowIndex + 1}:C${colIndex + 1}]",
+          style: const TextStyle(color: SGTheme.text, fontSize: 16),
+        ),
         content: TextField(
           controller: textController,
           autofocus: true,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
+          style: const TextStyle(color: SGTheme.text),
+          decoration: InputDecoration(
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             labelText: "Cell Value",
+            labelStyle: const TextStyle(color: SGTheme.textSecondary),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: SGTheme.accent),
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel"),
+            child: const Text("Cancel", style: TextStyle(color: SGTheme.textMuted)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
+            style: ElevatedButton.styleFrom(backgroundColor: SGTheme.accentDeep),
             onPressed: () async {
               final newVal = textController.text;
               Navigator.pop(ctx);
 
               setState(() {
                 _sheetsData[_currentSheet]![rowIndex][colIndex] = newVal;
-                _hasUnsavedChanges = true;
               });
 
-              // Persist locally
               await _docService.saveExcelCell(
                 widget.document.path,
                 _currentSheet,
@@ -100,28 +108,29 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
     final rows = _sheetsData[_currentSheet] ?? [];
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: SGTheme.bgDark,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: SGTheme.surface,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               widget.document.name,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: SGTheme.text),
               overflow: TextOverflow.ellipsis,
             ),
             const Text(
-              "Spreadsheet Editor (Tap cell to edit)",
-              style: TextStyle(fontSize: 11, color: Color(0xFF34D399)),
+              "Spreadsheet Editor (Tap any cell to edit)",
+              style: TextStyle(fontSize: 11, color: SGTheme.accent),
             ),
           ],
         ),
         actions: [
           if (_sheetsData.keys.length > 1)
             PopupMenuButton<String>(
-              icon: const Icon(Icons.table_chart_outlined),
+              icon: const Icon(Icons.table_chart_outlined, color: SGTheme.text),
               tooltip: "Switch Sheet",
+              color: SGTheme.surface,
               onSelected: (sheet) {
                 setState(() {
                   _currentSheet = sheet;
@@ -131,7 +140,13 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
                   .map(
                     (s) => PopupMenuItem(
                       value: s,
-                      child: Text(s, style: TextStyle(fontWeight: s == _currentSheet ? FontWeight.bold : FontWeight.normal)),
+                      child: Text(
+                        s,
+                        style: TextStyle(
+                          color: SGTheme.text,
+                          fontWeight: s == _currentSheet ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
                     ),
                   )
                   .toList(),
@@ -139,26 +154,26 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
+          ? const Center(child: CircularProgressIndicator(color: SGTheme.accent))
           : rows.isEmpty
               ? const Center(
-                  child: Text("Sheet is empty or has no readable cells.", style: TextStyle(color: Colors.white70)),
+                  child: Text("Sheet has no readable data.", style: TextStyle(color: SGTheme.textSecondary)),
                 )
               : SingleChildScrollView(
                   scrollDirection: Axis.vertical,
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: DataTable(
-                      headingRowColor: MaterialStateProperty.all(const Color(0xFF1E293B)),
+                      headingRowColor: MaterialStateProperty.all(SGTheme.surfaceHover),
                       dataRowColor: MaterialStateProperty.resolveWith<Color?>(
-                        (states) => Colors.black26,
+                        (states) => SGTheme.surface.withOpacity(0.6),
                       ),
                       columns: List.generate(
                         rows.first.length,
                         (index) => DataColumn(
                           label: Text(
                             String.fromCharCode(65 + (index % 26)),
-                            style: const TextStyle(color: Color(0xFF34D399), fontWeight: FontWeight.bold),
+                            style: const TextStyle(color: SGTheme.accent, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ),
@@ -172,7 +187,7 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
                               return DataCell(
                                 Text(
                                   cellVal,
-                                  style: const TextStyle(color: Colors.white),
+                                  style: const TextStyle(color: SGTheme.text),
                                 ),
                                 onTap: () => _editCell(rIndex, cIndex, cellVal),
                               );

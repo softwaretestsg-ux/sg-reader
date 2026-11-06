@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/theme.dart';
 import '../models/document_file.dart';
 import '../services/document_service.dart';
 
@@ -41,23 +42,29 @@ class _DocxViewerScreenState extends State<DocxViewerScreen> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final filtered = _searchQuery.isEmpty
         ? _paragraphs
         : _paragraphs.where((p) => p.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: SGTheme.bgDark,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: SGTheme.surface,
         title: _isSearching
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: SGTheme.text),
                 decoration: const InputDecoration(
                   hintText: "Search in document...",
-                  hintStyle: TextStyle(color: Colors.white54),
+                  hintStyle: TextStyle(color: SGTheme.textMuted),
                   border: InputBorder.none,
                 ),
                 onChanged: (val) {
@@ -68,12 +75,12 @@ class _DocxViewerScreenState extends State<DocxViewerScreen> {
               )
             : Text(
                 widget.document.name,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: SGTheme.text),
                 overflow: TextOverflow.ellipsis,
               ),
         actions: [
           IconButton(
-            icon: Icon(_isSearching ? Icons.close : Icons.search),
+            icon: Icon(_isSearching ? Icons.close : Icons.search, color: SGTheme.text),
             onPressed: () {
               setState(() {
                 if (_isSearching) {
@@ -89,26 +96,48 @@ class _DocxViewerScreenState extends State<DocxViewerScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
-          : ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-              itemCount: filtered.length,
-              itemBuilder: (ctx, index) {
-                final paragraph = filtered[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(
-                    paragraph,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      height: 1.5,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                );
-              },
-            ),
+          ? const Center(child: CircularProgressIndicator(color: SGTheme.accent))
+          : filtered.isEmpty
+              ? const Center(
+                  child: Text("No matching text found.", style: TextStyle(color: SGTheme.textSecondary)),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                  itemCount: filtered.length,
+                  itemBuilder: (ctx, index) {
+                    final paragraph = filtered[index];
+                    final isTable = paragraph.startsWith("[Table Row]");
+
+                    if (isTable) {
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: SGTheme.surface,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: SGTheme.border),
+                        ),
+                        child: Text(
+                          paragraph,
+                          style: const TextStyle(color: SGTheme.accent, fontSize: 13, fontFamily: 'monospace'),
+                        ),
+                      );
+                    }
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: Text(
+                        paragraph,
+                        style: const TextStyle(
+                          color: SGTheme.text,
+                          fontSize: 15,
+                          height: 1.55,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    );
+                  },
+                ),
     );
   }
 }
