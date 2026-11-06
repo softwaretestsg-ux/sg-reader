@@ -5,6 +5,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build Android Release APK
@@ -18,6 +21,15 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '17'
+
+      - name: Ensure Official Social Googol Release Keystore Exists
+        run: |
+          if [ ! -f android/app/socialgoogol_release.jks ]; then
+            keytool -genkey -v -keystore android/app/socialgoogol_release.jks \
+              -alias socialgoogol -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "SocialGoogol2026" -keypass "SocialGoogol2026" \
+              -dname "CN=Social Googol, OU=Mobile, O=Social Googol, L=Noida, ST=UP, C=IN"
+          fi
 
       - name: Set up Flutter (Latest Stable)
         uses: subosito/flutter-action@v2
@@ -38,13 +50,34 @@ jobs:
       - name: Run Automated Proof Tests (Read, Edit, Save, Share)
         run: flutter test test/document_crud_test.dart
 
-      - name: Build Release APK
+      - name: Build Official Signed Release APK
         run: |
           flutter build apk --release --android-skip-build-dependency-validation
-          cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/SG Reader.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/SG-Reader.apk"
 
-      - name: Upload Release APK
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: SG-Reader-Release-APK
-          path: "build/app/outputs/flutter-apk/SG Reader.apk"
+          path: "build/app/outputs/flutter-apk/SG-Reader.apk"
+
+      - name: Publish Direct APK Download on GitHub Releases
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/heads/main')
+        with:
+          tag_name: v1.0.0
+          name: "Social Googol SG Reader (Official Release v1.0.0)"
+          body: |
+            ### 🛡️ Social Googol's SG Reader - Official Android APK
+            **Tagline:** Secure to Grow - सुरक्षा से ग्रोथ तक
+            **Website:** https://www.socialgoogol.com
+            **Helpline:** +91 81262 10003
+
+            ---
+            ### ⚠️ Important Note Before Installing:
+            If you previously installed a test build of this app, **please uninstall the old version from your device first** before tapping the link below. Android blocks updates between builds signed with different temporary keys.
+
+            ### 📲 Direct 1-Click APK Download:
+            Download the official signed release directly to your Android device below:
+          files: |
+            build/app/outputs/flutter-apk/SG-Reader.apk

@@ -56,9 +56,26 @@ android {
         versionName flutterVersionName
     }
 
+    signingConfigs {
+        release {
+            if (file("socialgoogol_release.jks").exists()) {
+                storeFile file("socialgoogol_release.jks")
+                storePassword "SocialGoogol2026"
+                keyAlias "socialgoogol"
+                keyPassword "SocialGoogol2026"
+            }
+            v1SigningEnabled true
+            v2SigningEnabled true
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig signingConfigs.debug
+            if (file("socialgoogol_release.jks").exists()) {
+                signingConfig signingConfigs.release
+            } else {
+                signingConfig signingConfigs.debug
+            }
             minifyEnabled false
             shrinkResources false
         }
