@@ -150,9 +150,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: SGTheme.bgDark,
-      appBar: BrandBanner(
-        onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
-      ),
       drawer: Drawer(
         backgroundColor: SGTheme.surface,
         child: ListView(
@@ -247,9 +244,21 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       body: SafeArea(
+        top: true,
+        bottom: true,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Safe buffer ensuring branding is completely clear of system icons (wifi, battery, clock)
+            const SizedBox(height: 10),
+
+            // Official Social Googol Branding Card (Separated from status bar)
+            BrandBanner(
+              onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
+            ),
+
+            const SizedBox(height: 6),
+
             // Executive Security Badge (Clean & Professional)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
