@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../constants/branding.dart';
+import '../constants/theme.dart';
 import '../models/document_file.dart';
 import '../services/document_service.dart';
 import '../services/security_service.dart';
@@ -87,30 +88,30 @@ class _HomeScreenState extends State<HomeScreen> {
   IconData _iconForType(DocumentType type) {
     switch (type) {
       case DocumentType.pdf:
-        return Icons.picture_as_pdf;
+        return Icons.picture_as_pdf_outlined;
       case DocumentType.excel:
-        return Icons.table_chart;
+        return Icons.table_chart_outlined;
       case DocumentType.word:
-        return Icons.article;
+        return Icons.article_outlined;
       case DocumentType.powerpoint:
-        return Icons.slideshow;
+        return Icons.slideshow_outlined;
       default:
-        return Icons.insert_drive_file;
+        return Icons.insert_drive_file_outlined;
     }
   }
 
   Color _colorForType(DocumentType type) {
     switch (type) {
       case DocumentType.pdf:
-        return const Color(0xFFEF4444); // Red
+        return const Color(0xFFE5534B);
       case DocumentType.excel:
-        return const Color(0xFF10B981); // Emerald
+        return const Color(0xFF4F7A4A);
       case DocumentType.word:
-        return const Color(0xFF3B82F6); // Blue
+        return const Color(0xFF4B8FE5);
       case DocumentType.powerpoint:
-        return const Color(0xFFF97316); // Orange
+        return SGTheme.accent;
       default:
-        return Colors.grey;
+        return SGTheme.textMuted;
     }
   }
 
@@ -121,53 +122,86 @@ class _HomeScreenState extends State<HomeScreen> {
         : _recentDocs.where((d) => d.type == _selectedFilter).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: SGTheme.bgDark,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(60),
+        preferredSize: const Size.fromHeight(62),
         child: const BrandBanner(),
       ),
       drawer: Drawer(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: SGTheme.surface,
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
               decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF2563EB), Color(0xFF10B981)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: SGTheme.logoTileDark,
+                border: Border(bottom: BorderSide(color: SGTheme.borderStrong)),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: const [
-                  Text(
-                    BrandConstants.appName,
-                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+              child: Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: SGTheme.bgDark,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: SGTheme.accentBorder),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset(
+                        'assets/images/logo-sg.webp',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
                   ),
-                  SizedBox(height: 4),
-                  Text(
-                    BrandConstants.fullTagline,
-                    style: TextStyle(color: Colors.white, fontSize: 11),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Text(
+                          BrandConstants.appName,
+                          style: TextStyle(
+                            color: SGTheme.text,
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          BrandConstants.fullTagline,
+                          style: TextStyle(
+                            color: SGTheme.accent,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.info_outline, color: Colors.white70),
-              title: const Text("About Social Googol", style: TextStyle(color: Colors.white)),
+              leading: const Icon(Icons.info_outline, color: SGTheme.textSecondary),
+              title: const Text("About Social Googol", style: TextStyle(color: SGTheme.text)),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen()));
               },
             ),
             SwitchListTile(
-              secondary: const Icon(Icons.fingerprint, color: Color(0xFF10B981)),
-              title: const Text("App Lock (Biometrics/PIN)", style: TextStyle(color: Colors.white)),
-              subtitle: const Text("Require security authentication on launch", style: TextStyle(color: Colors.white54, fontSize: 11)),
+              secondary: const Icon(Icons.fingerprint, color: SGTheme.accent),
+              title: const Text("App Lock (Biometrics/PIN)", style: TextStyle(color: SGTheme.text)),
+              subtitle: const Text(
+                "Require biometric verification to open documents",
+                style: TextStyle(color: SGTheme.textMuted, fontSize: 11),
+              ),
               value: _appLockEnabled,
+              activeColor: SGTheme.accent,
               onChanged: (val) async {
                 await _securityService.setAppLockEnabled(val);
                 setState(() {
@@ -175,12 +209,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 });
               },
             ),
-            const Divider(color: Colors.white12),
+            const Divider(color: SGTheme.border),
             const Padding(
               padding: EdgeInsets.all(16.0),
               child: Text(
-                "Helpline: 8126210003\nWebsite: www.socialgoogol.com\n100% Free & Sideloaded Edition",
-                style: TextStyle(color: Colors.white38, fontSize: 11, height: 1.5),
+                "Support: +91 81262 10003\nWebsite: www.socialgoogol.com\nSecure Offline Architecture",
+                style: TextStyle(color: SGTheme.textMuted, fontSize: 11, height: 1.6),
               ),
             ),
           ],
@@ -190,24 +224,50 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Quick Status Pill
+            // Executive Security Badge (Clean & Professional)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+                  color: SGTheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: SGTheme.accentBorder),
                 ),
                 child: Row(
-                  children: const [
-                    Icon(Icons.lock_outline, color: Color(0xFF34D399), size: 16),
-                    SizedBox(width: 8),
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: SGTheme.accentSoft,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.verified_user_outlined, color: SGTheme.accent, size: 18),
+                    ),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        "100% Offline Sandbox • Zero Cloud Uploads • Complete Privacy",
-                        style: TextStyle(color: Color(0xFF34D399), fontSize: 11, fontWeight: FontWeight.w600),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            "Enterprise On-Device Privacy",
+                            style: TextStyle(
+                              color: SGTheme.text,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            "Air-Gapped Processing • Zero External Data Transmission",
+                            style: TextStyle(
+                              color: SGTheme.textSecondary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -215,7 +275,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // Format Filter Chips
+            // Format Quick-Filter Chips
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -224,77 +284,112 @@ class _HomeScreenState extends State<HomeScreen> {
                   ChoiceChip(
                     label: const Text("All"),
                     selected: _selectedFilter == null,
+                    selectedColor: SGTheme.accentDeep,
+                    backgroundColor: SGTheme.surface,
+                    labelStyle: TextStyle(
+                      color: _selectedFilter == null ? Colors.white : SGTheme.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
                     onSelected: (_) => setState(() => _selectedFilter = null),
                   ),
                   const SizedBox(width: 8),
                   ChoiceChip(
-                    avatar: const Icon(Icons.picture_as_pdf, size: 16, color: Colors.white),
+                    avatar: const Icon(Icons.picture_as_pdf_outlined, size: 16, color: Colors.white),
                     label: const Text("PDF"),
                     selected: _selectedFilter == DocumentType.pdf,
+                    selectedColor: SGTheme.accentDeep,
+                    backgroundColor: SGTheme.surface,
+                    labelStyle: TextStyle(
+                      color: _selectedFilter == DocumentType.pdf ? Colors.white : SGTheme.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
                     onSelected: (_) => setState(() => _selectedFilter = DocumentType.pdf),
                   ),
                   const SizedBox(width: 8),
                   ChoiceChip(
-                    avatar: const Icon(Icons.table_chart, size: 16, color: Colors.white),
+                    avatar: const Icon(Icons.table_chart_outlined, size: 16, color: Colors.white),
                     label: const Text("Excel (XLSX)"),
                     selected: _selectedFilter == DocumentType.excel,
+                    selectedColor: SGTheme.accentDeep,
+                    backgroundColor: SGTheme.surface,
+                    labelStyle: TextStyle(
+                      color: _selectedFilter == DocumentType.excel ? Colors.white : SGTheme.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
                     onSelected: (_) => setState(() => _selectedFilter = DocumentType.excel),
                   ),
                   const SizedBox(width: 8),
                   ChoiceChip(
-                    avatar: const Icon(Icons.article, size: 16, color: Colors.white),
+                    avatar: const Icon(Icons.article_outlined, size: 16, color: Colors.white),
                     label: const Text("Word (DOCX)"),
                     selected: _selectedFilter == DocumentType.word,
+                    selectedColor: SGTheme.accentDeep,
+                    backgroundColor: SGTheme.surface,
+                    labelStyle: TextStyle(
+                      color: _selectedFilter == DocumentType.word ? Colors.white : SGTheme.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
                     onSelected: (_) => setState(() => _selectedFilter = DocumentType.word),
                   ),
                   const SizedBox(width: 8),
                   ChoiceChip(
-                    avatar: const Icon(Icons.slideshow, size: 16, color: Colors.white),
+                    avatar: const Icon(Icons.slideshow_outlined, size: 16, color: Colors.white),
                     label: const Text("PPT (PPTX)"),
                     selected: _selectedFilter == DocumentType.powerpoint,
+                    selectedColor: SGTheme.accentDeep,
+                    backgroundColor: SGTheme.surface,
+                    labelStyle: TextStyle(
+                      color: _selectedFilter == DocumentType.powerpoint ? Colors.white : SGTheme.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
                     onSelected: (_) => setState(() => _selectedFilter = DocumentType.powerpoint),
                   ),
                 ],
               ),
             ),
 
-            // Recent Documents Section Header
+            // Section Header
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
                     "Recent Documents",
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: SGTheme.text,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.2,
+                    ),
                   ),
                   Text(
                     "${filtered.length} files",
-                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                    style: const TextStyle(color: SGTheme.textMuted, fontSize: 12),
                   ),
                 ],
               ),
             ),
 
-            // Recent List or Empty State
+            // Recent Documents List or Empty State
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
+                  ? const Center(child: CircularProgressIndicator(color: SGTheme.accent))
                   : filtered.isEmpty
                       ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.folder_open, size: 64, color: Colors.white.withOpacity(0.2)),
+                              Icon(Icons.folder_open_outlined, size: 56, color: SGTheme.textMuted.withOpacity(0.4)),
                               const SizedBox(height: 12),
                               const Text(
                                 "No recent documents",
-                                style: TextStyle(color: Colors.white60, fontSize: 15),
+                                style: TextStyle(color: SGTheme.textSecondary, fontSize: 15, fontWeight: FontWeight.w500),
                               ),
                               const SizedBox(height: 6),
                               const Text(
-                                "Tap 'Open File' below to browse PDF, Excel, Word or PPT",
-                                style: TextStyle(color: Colors.white38, fontSize: 12),
+                                "Tap 'Open Document' to browse PDF, Excel, Word or PPT files",
+                                style: TextStyle(color: SGTheme.textMuted, fontSize: 12),
                               ),
                             ],
                           ),
@@ -306,34 +401,38 @@ class _HomeScreenState extends State<HomeScreen> {
                           itemBuilder: (ctx, index) {
                             final doc = filtered[index];
                             return ListTile(
-                              tileColor: const Color(0xFF1E293B),
+                              tileColor: SGTheme.surface,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                side: const BorderSide(color: Colors.white10),
+                                side: const BorderSide(color: SGTheme.border),
                               ),
                               leading: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: _colorForType(doc.type).withOpacity(0.15),
+                                  color: _colorForType(doc.type).withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Icon(
                                   _iconForType(doc.type),
                                   color: _colorForType(doc.type),
-                                  size: 24,
+                                  size: 22,
                                 ),
                               ),
                               title: Text(
                                 doc.name,
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                                style: const TextStyle(
+                                  color: SGTheme.text,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                               subtitle: Text(
                                 "${doc.formattedSize} • ${doc.type.name.toUpperCase()}",
-                                style: const TextStyle(color: Colors.white54, fontSize: 11),
+                                style: const TextStyle(color: SGTheme.textMuted, fontSize: 11),
                               ),
-                              trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 14),
+                              trailing: const Icon(Icons.arrow_forward_ios, color: SGTheme.borderStrong, size: 13),
                               onTap: () => _openDocument(doc),
                             );
                           },
@@ -343,9 +442,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF10B981),
-        icon: const Icon(Icons.file_open, color: Colors.white),
-        label: const Text("Open File", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: SGTheme.accentDeep,
+        icon: const Icon(Icons.file_open_outlined, color: Colors.white),
+        label: const Text(
+          "Open Document",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         onPressed: _pickAndOpenFile,
       ),
     );

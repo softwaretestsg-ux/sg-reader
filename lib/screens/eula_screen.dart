@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../constants/branding.dart';
 import '../constants/legal_terms.dart';
+import '../constants/theme.dart';
 import '../services/security_service.dart';
 import 'home_screen.dart';
 
@@ -28,13 +29,13 @@ class _EulaScreenState extends State<EulaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: SGTheme.bgDark,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: SGTheme.surface,
         elevation: 0,
         title: const Text(
           "Terms & Legal Disclaimer",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
         ),
       ),
       body: SafeArea(
@@ -43,22 +44,22 @@ class _EulaScreenState extends State<EulaScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Notice Header
+              // Notice Header Card
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.amber.shade900.withOpacity(0.2),
-                  border: Border.all(color: Colors.amber.shade700),
-                  borderRadius: BorderRadius.circular(8),
+                  color: SGTheme.surface,
+                  border: Border.all(color: SGTheme.accentBorder),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
                   children: const [
-                    Icon(Icons.shield_outlined, color: Colors.amberAccent),
+                    Icon(Icons.shield_outlined, color: SGTheme.accent, size: 22),
                     SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        "Please read and accept the terms of use provided by Social Googol before using SG Reader.",
-                        style: TextStyle(color: Colors.white, fontSize: 12),
+                        "Please review and accept the terms of use provided by Social Googol before using SG Reader.",
+                        style: TextStyle(color: SGTheme.textSecondary, fontSize: 12, height: 1.35),
                       ),
                     ),
                   ],
@@ -71,17 +72,17 @@ class _EulaScreenState extends State<EulaScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white12),
+                    color: SGTheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: SGTheme.border),
                   ),
                   child: SingleChildScrollView(
                     child: Text(
                       LegalTerms.fullTerms,
                       style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12.5,
-                        height: 1.45,
+                        color: SGTheme.textSecondary,
+                        fontSize: 12,
+                        height: 1.5,
                       ),
                     ),
                   ),
@@ -93,14 +94,15 @@ class _EulaScreenState extends State<EulaScreen> {
               // Checkbox acceptance
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
-                  borderRadius: BorderRadius.circular(8),
+                  color: SGTheme.surface,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: SGTheme.border),
                 ),
                 child: CheckboxListTile(
-                  activeColor: const Color(0xFF10B981),
+                  activeColor: SGTheme.accentDeep,
                   title: const Text(
                     "I have read, understood, and accept the 'AS-IS' terms and limitation of liability.",
-                    style: TextStyle(color: Colors.white, fontSize: 12),
+                    style: TextStyle(color: SGTheme.text, fontSize: 12),
                   ),
                   value: _accepted,
                   onChanged: (val) {
@@ -116,9 +118,10 @@ class _EulaScreenState extends State<EulaScreen> {
               // Action button
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _accepted ? const Color(0xFF10B981) : Colors.grey.shade700,
+                  backgroundColor: _accepted ? SGTheme.accentDeep : SGTheme.surfaceHover,
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 onPressed: _accepted ? _onProceed : null,
                 child: const Text(
@@ -126,7 +129,6 @@ class _EulaScreenState extends State<EulaScreen> {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
                   ),
                 ),
               ),

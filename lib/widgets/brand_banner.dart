@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../constants/branding.dart';
+import '../constants/theme.dart';
 
 class BrandBanner extends StatelessWidget {
   const BrandBanner({Key? key}) : super(key: key);
@@ -15,31 +16,37 @@ class BrandBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B), // Premium slate dark
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 6,
-            offset: const Offset(0, 3),
-          ),
-        ],
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(
+        color: SGTheme.surface,
+        border: Border(
+          bottom: BorderSide(color: SGTheme.border, width: 1),
+        ),
       ),
       child: Row(
         children: [
-          // Company Icon / Logo Badge
+          // Official Social Googol Logo Tile
           Container(
-            padding: const EdgeInsets.all(8),
+            width: 40,
+            height: 40,
+            padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF2563EB), Color(0xFF10B981)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: SGTheme.logoTileDark,
               borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: SGTheme.borderStrong, width: 1),
             ),
-            child: const Icon(Icons.shield_outlined, color: Colors.white, size: 24),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Image.asset(
+                'assets/images/logo-sg.webp',
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.shield_outlined,
+                  color: SGTheme.accent,
+                  size: 22,
+                ),
+              ),
+            ),
           ),
           const SizedBox(width: 12),
           // Titles & Taglines
@@ -51,17 +58,17 @@ class BrandBanner extends StatelessWidget {
                 Text(
                   BrandConstants.developerName,
                   style: TextStyle(
-                    color: Colors.white,
+                    color: SGTheme.text,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
-                    letterSpacing: 0.5,
+                    letterSpacing: 0.3,
                   ),
                 ),
                 SizedBox(height: 2),
                 Text(
                   BrandConstants.fullTagline,
                   style: TextStyle(
-                    color: Color(0xFF34D399), // Emerald
+                    color: SGTheme.accent,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
@@ -69,14 +76,14 @@ class BrandBanner extends StatelessWidget {
               ],
             ),
           ),
-          // Action Buttons: Call & WhatsApp
+          // Actions: Direct Phone & Official Website
           IconButton(
-            icon: const Icon(Icons.phone_in_talk, color: Colors.white70, size: 20),
+            icon: const Icon(Icons.phone_in_talk_outlined, color: SGTheme.textSecondary, size: 20),
             tooltip: "Call Support (${BrandConstants.contactPhoneFormatted})",
             onPressed: () => _launchUrl("tel:${BrandConstants.contactPhone}"),
           ),
           IconButton(
-            icon: const Icon(Icons.language, color: Colors.white70, size: 20),
+            icon: const Icon(Icons.language_outlined, color: SGTheme.textSecondary, size: 20),
             tooltip: "Visit Website",
             onPressed: () => _launchUrl(BrandConstants.websiteUrl),
           ),

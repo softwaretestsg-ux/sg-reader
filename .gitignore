@@ -38,3 +38,8 @@ migrate_working_dir/
 # Keystore files
 *.jks
 *.keystore
+
+# Built releases
+release_apk/
+*.apk
+

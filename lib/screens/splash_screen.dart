@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../constants/branding.dart';
+import '../constants/theme.dart';
 import '../services/security_service.dart';
 import 'eula_screen.dart';
 import 'home_screen.dart';
@@ -21,7 +22,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
+      duration: const Duration(milliseconds: 1200),
     );
     _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
     _controller.forward();
@@ -30,7 +31,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   }
 
   Future<void> _navigateNext() async {
-    await Future.delayed(const Duration(milliseconds: 2200));
+    await Future.delayed(const Duration(milliseconds: 2000));
 
     final isEulaAccepted = await _securityService.isEulaAccepted();
     if (!mounted) return;
@@ -47,7 +48,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     if (isLockEnabled) {
       final authenticated = await _securityService.authenticateUser();
       if (!authenticated) {
-        // App closes or stays locked if user fails biometric check
         return;
       }
     }
@@ -68,41 +68,46 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // Dark slate
+      backgroundColor: SGTheme.bgDark,
       body: Center(
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo Shield Icon
+              // Official Social Googol Logo Card
               Container(
-                width: 90,
-                height: 90,
+                width: 100,
+                height: 100,
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF3B82F6), Color(0xFF10B981)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: SGTheme.logoTileDark,
                   borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: SGTheme.accentBorder, width: 1.5),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF10B981).withOpacity(0.3),
-                      blurRadius: 20,
+                      color: SGTheme.accent.withOpacity(0.18),
+                      blurRadius: 30,
                       offset: const Offset(0, 10),
                     ),
                   ],
                 ),
-                child: const Icon(
-                  Icons.description_outlined,
-                  size: 48,
-                  color: Colors.white,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.asset(
+                    'assets/images/logo-sg.webp',
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Icon(
+                      Icons.shield_outlined,
+                      size: 50,
+                      color: SGTheme.accent,
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
 
-              // App Name
+              // Brand & App Name
               RichText(
                 textAlign: TextAlign.center,
                 text: const TextSpan(
@@ -110,17 +115,17 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     TextSpan(
                       text: "Social Googol's\n",
                       style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white70,
-                        letterSpacing: 1.5,
-                        fontWeight: FontWeight.w400,
+                        fontSize: 15,
+                        color: SGTheme.textSecondary,
+                        letterSpacing: 2.0,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     TextSpan(
                       text: "SG Reader",
                       style: TextStyle(
-                        fontSize: 34,
-                        color: Colors.white,
+                        fontSize: 32,
+                        color: SGTheme.text,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1.2,
                       ),
@@ -134,27 +139,28 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.08),
+                  color: SGTheme.surfaceHover,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white12),
+                  border: Border.all(color: SGTheme.borderStrong),
                 ),
                 child: const Text(
                   BrandConstants.fullTagline,
                   style: TextStyle(
-                    color: Color(0xFF34D399),
-                    fontSize: 13,
+                    color: SGTheme.accent,
+                    fontSize: 12.5,
                     fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
                   ),
                 ),
               ),
 
               const SizedBox(height: 48),
               const SizedBox(
-                width: 24,
-                height: 24,
+                width: 22,
+                height: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
+                  valueColor: AlwaysStoppedAnimation<Color>(SGTheme.accent),
                 ),
               ),
             ],

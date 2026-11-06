@@ -26,7 +26,7 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Generate Android Wrapper & Platform Files
+      - name: Generate Android Platform Files
         run: |
           flutter create . --org com.socialgoogol --project-name sg_reader --platforms android
 
@@ -34,10 +34,12 @@ jobs:
         run: flutter pub get
 
       - name: Build Release APK
-        run: flutter build apk --release
+        run: |
+          flutter build apk --release
+          cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/SG Reader.apk"
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
           name: SG-Reader-Release-APK
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: "build/app/outputs/flutter-apk/SG Reader.apk"

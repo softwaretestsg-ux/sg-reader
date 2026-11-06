@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../constants/branding.dart';
 import '../constants/legal_terms.dart';
+import '../constants/theme.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({Key? key}) : super(key: key);
@@ -16,9 +17,9 @@ class AboutScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: SGTheme.bgDark,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: SGTheme.surface,
         title: const Text("About Social Googol", style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: SingleChildScrollView(
@@ -27,58 +28,81 @@ class AboutScreen extends StatelessWidget {
           children: [
             // Company Header Card
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
+                color: SGTheme.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white12),
+                border: Border.all(color: SGTheme.borderStrong),
               ),
               child: Column(
                 children: [
                   Container(
-                    width: 70,
-                    height: 70,
+                    width: 76,
+                    height: 76,
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF2563EB), Color(0xFF10B981)],
-                      ),
-                      borderRadius: BorderRadius.circular(16),
+                      color: SGTheme.logoTileDark,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: SGTheme.accentBorder),
                     ),
-                    child: const Icon(Icons.shield_outlined, color: Colors.white, size: 36),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.asset(
+                        'assets/images/logo-sg.webp',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   const Text(
                     BrandConstants.developerName,
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: SGTheme.text,
+                      letterSpacing: 0.3,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   const Text(
                     BrandConstants.fullTagline,
-                    style: TextStyle(color: Color(0xFF34D399), fontWeight: FontWeight.w600, fontSize: 13),
+                    style: TextStyle(
+                      color: SGTheme.accent,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                   const Text(
-                    "SG Reader is a lightweight, zero-cloud document reader and editor built for high-security environments.",
+                    "SG Reader is an enterprise-grade, air-gapped document viewer and editor designed for complete data privacy and security.",
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                    style: TextStyle(
+                      color: SGTheme.textSecondary,
+                      fontSize: 13,
+                      height: 1.45,
+                    ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 20),
 
-            // Quick Connect Buttons
+            // Quick Connect Action Buttons
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2563EB),
+                      backgroundColor: SGTheme.surfaceHover,
+                      foregroundColor: SGTheme.text,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        side: const BorderSide(color: SGTheme.borderStrong),
+                      ),
                     ),
-                    icon: const Icon(Icons.phone, color: Colors.white),
-                    label: const Text("Call Us", style: TextStyle(color: Colors.white)),
+                    icon: const Icon(Icons.phone_outlined, color: SGTheme.accent, size: 20),
+                    label: const Text("Call Helpline"),
                     onPressed: () => _launch("tel:${BrandConstants.contactPhone}"),
                   ),
                 ),
@@ -86,12 +110,13 @@ class AboutScreen extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF10B981),
+                      backgroundColor: SGTheme.accentDeep,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    icon: const Icon(Icons.chat_bubble, color: Colors.white),
-                    label: const Text("WhatsApp", style: TextStyle(color: Colors.white)),
+                    icon: const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 20),
+                    label: const Text("WhatsApp", style: TextStyle(fontWeight: FontWeight.bold)),
                     onPressed: () => _launch(BrandConstants.contactWhatsAppUrl),
                   ),
                 ),
@@ -100,12 +125,16 @@ class AboutScreen extends StatelessWidget {
             const SizedBox(height: 12),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF334155),
+                backgroundColor: SGTheme.surface,
+                foregroundColor: SGTheme.text,
                 minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: const BorderSide(color: SGTheme.border),
+                ),
               ),
-              icon: const Icon(Icons.language, color: Colors.white),
-              label: const Text("Visit www.socialgoogol.com", style: TextStyle(color: Colors.white)),
+              icon: const Icon(Icons.language_outlined, color: SGTheme.accent, size: 20),
+              label: const Text("Visit www.socialgoogol.com"),
               onPressed: () => _launch(BrandConstants.websiteUrl),
             ),
 
@@ -115,30 +144,38 @@ class AboutScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
+                color: SGTheme.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white10),
+                border: Border.all(color: SGTheme.border),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
                   Text(
                     "Legal Notice & Limitation of Liability",
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                    style: TextStyle(
+                      color: SGTheme.text,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13.5,
+                    ),
                   ),
                   SizedBox(height: 8),
                   Text(
                     LegalTerms.disclaimerSummary,
-                    style: TextStyle(color: Colors.white60, fontSize: 12, height: 1.4),
+                    style: TextStyle(
+                      color: SGTheme.textMuted,
+                      fontSize: 12,
+                      height: 1.45,
+                    ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 20),
             const Text(
-              "App Version: ${BrandConstants.appVersion}\n100% Offline • Zero Tracking",
+              "SG Reader • Version: 1.0.0 (Release)\nAir-Gapped Local Architecture • Zero External Telemetry",
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white30, fontSize: 11),
+              style: TextStyle(color: SGTheme.textMuted, fontSize: 11, height: 1.5),
             ),
           ],
         ),
