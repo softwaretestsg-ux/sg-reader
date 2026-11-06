@@ -1,4 +1,4 @@
-name: Build Social Googol Pagify Release APK
+name: Build Social Googol SG Reader Release APK
 
 on:
   push:
@@ -18,18 +18,19 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '17'
-          cache: 'gradle'
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.24.5'
           channel: 'stable'
           cache: true
 
-      - name: Verify Flutter Installation
-        run: flutter --version
+      - name: Generate Android Wrapper & Platform Files
+        run: |
+          flutter create . --org com.socialgoogol --project-name sg_reader --platforms android
 
-      - name: Get Dependencies
+      - name: Install Dependencies
         run: flutter pub get
 
       - name: Build Release APK
@@ -38,5 +39,5 @@ jobs:
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: Social-Googol-Pagify-Release-APK
+          name: SG-Reader-Release-APK
           path: build/app/outputs/flutter-apk/app-release.apk

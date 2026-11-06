@@ -1,5 +1,5 @@
-name: pagify
-description: "Social Googol's Pagify - Secure, Lightweight Document Reader & Editor for Android."
+name: sg_reader
+description: "Social Googol's SG Reader - Secure, Lightweight Document Reader & Editor for Android."
 publish_to: "none"
 version: 1.0.0+1
 

@@ -117,7 +117,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       ),
                     ),
                     TextSpan(
-                      text: "Pagify",
+                      text: "SG Reader",
                       style: TextStyle(
                         fontSize: 34,
                         color: Colors.white,

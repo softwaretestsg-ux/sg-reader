@@ -57,7 +57,7 @@ class _EulaScreenState extends State<EulaScreen> {
                     SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        "Please read and accept the terms of use provided by Social Googol before using Pagify.",
+                        "Please read and accept the terms of use provided by Social Googol before using SG Reader.",
                         style: TextStyle(color: Colors.white, fontSize: 12),
                       ),
                     ),

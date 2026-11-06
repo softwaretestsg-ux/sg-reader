@@ -33,7 +33,7 @@ class SecurityService {
       if (!isAvailable) return true; // If device has no biometrics, allow access
 
       return await _localAuth.authenticate(
-        localizedReason: "Social Googol Pagify: Authenticate to access your secure documents",
+        localizedReason: "Social Googol SG Reader: Authenticate to access your secure documents",
         options: const AuthenticationOptions(
           stickyAuth: true,
           biometricOnly: false,

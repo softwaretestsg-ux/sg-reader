@@ -99,7 +99,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
               },
             ),
             const Text(
-              "Social Googol's Pagify (100% Offline)",
+              "Social Googol's SG Reader (100% Offline)",
               style: TextStyle(color: Colors.white38, fontSize: 11),
             ),
             IconButton(

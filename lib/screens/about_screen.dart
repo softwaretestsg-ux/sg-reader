@@ -58,7 +58,7 @@ class AboutScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    "Pagify is a lightweight, zero-cloud document reader and editor built for high-security environments.",
+                    "SG Reader is a lightweight, zero-cloud document reader and editor built for high-security environments.",
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
                   ),

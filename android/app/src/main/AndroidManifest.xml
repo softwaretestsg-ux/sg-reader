@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.socialgoogol.pagify">
+    package="com.socialgoogol.sgreader">
 
     <!-- Scoped biometric & security permissions -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
@@ -22,7 +22,7 @@
     </queries>
 
     <application
-        android:label="Social Googol's Pagify"
+        android:label="Social Googol's SG Reader"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

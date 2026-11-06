@@ -1,4 +1,4 @@
-package com.socialgoogol.pagify
+package com.socialgoogol.sgreader
 
 import io.flutter.embedding.android.FlutterActivity
 

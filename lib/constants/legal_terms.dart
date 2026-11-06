@@ -4,7 +4,7 @@ class LegalTerms {
   
   static const String disclaimerSummary = 
       "By tapping 'I Agree & Proceed', you acknowledge that Social Googol provides "
-      "Pagify as a free, lightweight document viewer and editor on an 'AS-IS' basis. "
+      "SG Reader as a free, lightweight document viewer and editor on an 'AS-IS' basis. "
       "Social Googol disclaims all liability for data loss, document corruption, or "
       "business interruption.";
 
@@ -14,7 +14,7 @@ END-USER LICENSE AGREEMENT & DISCLAIMER OF LIABILITY
 Last Updated: November 2026
 Developer & Owner: Social Googol (https://www.socialgoogol.com)
 
-PLEASE READ THIS AGREEMENT CAREFULLY BEFORE USING "SOCIAL GOOGOL'S PAGIFY" (THE "APPLICATION"). BY INSTALLING, OPENING, OR USING THIS APPLICATION, YOU EXPRESSLY AGREE TO BE BOUND BY THE FOLLOWING TERMS AND CONDITIONS:
+PLEASE READ THIS AGREEMENT CAREFULLY BEFORE USING "SOCIAL GOOGOL'S SG READER" (THE "APPLICATION"). BY INSTALLING, OPENING, OR USING THIS APPLICATION, YOU EXPRESSLY AGREE TO BE BOUND BY THE FOLLOWING TERMS AND CONDITIONS:
 
 1. "AS IS" AND "AS AVAILABLE" PROVISION
 The Application is provided free of charge, "AS IS", and "AS AVAILABLE", without warranties, representations, or conditions of any kind, whether express, implied, statutory, or otherwise. This includes, without limitation, implied warranties of merchantability, fitness for a particular purpose, title, error-free operation, and non-infringement.
@@ -31,7 +31,7 @@ Users are strictly advised to maintain separate, verifiable backup copies of all
 The Application performs all document parsing and editing strictly on the user's local device hardware without transferring, transmitting, or uploading any user document to external cloud servers. Social Googol collects no telemetry, no tracking analytics, and no personally identifiable documents.
 
 5. INTELLECTUAL PROPERTY
-"Social Googol", "Pagify", and the tagline "Secure to Grow - सुरक्षा से ग्रोथ तक" are proprietary assets of Social Googol. All rights reserved.
+"Social Googol", "SG Reader", and the tagline "Secure to Grow - सुरक्षा से ग्रोथ तक" are proprietary assets of Social Googol. All rights reserved.
 
 6. CONTACT & INQUIRIES
 For feedback, verification, or enterprise inquiries:
