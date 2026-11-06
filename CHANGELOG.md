@@ -4,6 +4,15 @@ All notable changes to the **Social Googol SG Reader** application are documente
 
 ---
 
+## [1.2.0] - 2026-11-06 (Build 13)
+### Fixed
+- **Full Document Page Flow & Layout:** Resolved the critical Blink flexbox height collapse issue that truncated Word document pages halfway down the screen. Changed document container from a constrained flex item to a full, continuous paper canvas (`display: block; height: auto !important`) on a neutral desktop (`#ECE8E1`). All pages, paragraphs, and multi-column tables are now 100% visible with crisp, high-contrast `#1A1A1A` text.
+- **Responsive Resume & Table Formatting:** Added `width: 100% !important; table-layout: auto; word-break: break-word;` for all embedded tables, preventing resumes with complex layouts from spilling or clipping off-screen.
+- **Direct In-Line Document Editing:** Removed confusing modal dialogs. Users can now tap directly anywhere in the text to position cursor, type, or select text, with a streamlined top formatting toolbar and quick paragraph actions (`+ Add Paragraph`, `🗑 Delete Line`, `Clear Style`, `Scroll to Top / Bottom`).
+- **Real-Time Document Metrics:** Added automatic calculation of total estimated pages and word count (`N Pages • X words`) in the Word Processor header.
+- **Robust Multi-Layer File Type Detection:** Enhanced Android `MainActivity.kt` and Dart `DocumentFile.detectType` to detect document types via file extension, Android MIME type, and file header magic bytes (`%PDF`, `PK\x03\x04` zip structure, and `0xD0 0xCF 0x11 0xE0` OLE2 compound files). Files shared from WhatsApp or Files without an explicit extension now open automatically in the correct editor.
+- **Fallback Format Picker:** If an unrecognized file format is opened, the app prompts the user with an intuitive format picker dialog instead of failing.
+
 ## [1.1.0] - 2026-11-06 (Build 12)
 ### Added
 - **Version Indicator on Initial Loading Page:** Added visible version badge (`Version v1.1.0 • Build 12`) on the initial launch `SplashScreen` and app footer so users always know their installed build version.

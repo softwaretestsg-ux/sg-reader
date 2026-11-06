@@ -59,21 +59,46 @@ class MainActivity : FlutterActivity() {
         if (uri == null) return null
 
         return try {
+            val mimeType = try {
+                contentResolver.getType(uri) ?: intent.type ?: ""
+            } catch (e: Exception) {
+                intent.type ?: ""
+            }
+
             var fileName = "shared_document"
-            val cursor = contentResolver.query(uri, null, null, null, null)
-            cursor?.use {
-                if (it.moveToFirst()) {
-                    val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                    if (nameIndex != -1) {
-                        fileName = it.getString(nameIndex) ?: fileName
+            try {
+                val cursor = contentResolver.query(uri, null, null, null, null)
+                cursor?.use {
+                    if (it.moveToFirst()) {
+                        val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                        if (nameIndex != -1) {
+                            fileName = it.getString(nameIndex) ?: fileName
+                        }
                     }
+                }
+            } catch (e: Exception) {
+                // If contentResolver query is restricted, fallback to lastPathSegment
+            }
+
+            if (fileName == "shared_document" || !fileName.contains(".")) {
+                val lastSegment = uri.lastPathSegment
+                if (!lastSegment.isNullOrBlank() && lastSegment.contains(".")) {
+                    fileName = lastSegment.substringAfterLast('/')
                 }
             }
 
-            if (fileName == "shared_document") {
-                val lastSegment = uri.lastPathSegment
-                if (!lastSegment.isNullOrBlank()) {
-                    fileName = lastSegment.substringAfterLast('/')
+            // Infer extension from MIME type if still missing
+            if (!fileName.contains(".")) {
+                val inferredExt = when {
+                    mimeType.contains("pdf", ignoreCase = true) -> ".pdf"
+                    mimeType.contains("wordprocessingml", ignoreCase = true) || mimeType.contains("msword", ignoreCase = true) -> ".docx"
+                    mimeType.contains("spreadsheetml", ignoreCase = true) || mimeType.contains("ms-excel", ignoreCase = true) -> ".xlsx"
+                    mimeType.contains("csv", ignoreCase = true) -> ".csv"
+                    mimeType.contains("presentationml", ignoreCase = true) || mimeType.contains("ms-powerpoint", ignoreCase = true) -> ".pptx"
+                    else -> ""
+                }
+                if (inferredExt.isNotEmpty()) {
+                    fileName = "$fileName$inferredExt"
                 }
             }
 
@@ -90,7 +115,8 @@ class MainActivity : FlutterActivity() {
             if (destinationFile.exists() && destinationFile.length() > 0) {
                 mapOf(
                     "path" to destinationFile.absolutePath,
-                    "name" to fileName
+                    "name" to fileName,
+                    "mimeType" to mimeType
                 )
             } else {
                 null

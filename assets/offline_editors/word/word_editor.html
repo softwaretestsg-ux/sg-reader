@@ -11,8 +11,8 @@
       padding: 0;
     }
     body {
-      background-color: #171310;
-      color: #1F1913;
+      background-color: #ECE8E1;
+      color: #1A1A1A;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       display: flex;
       flex-direction: column;
@@ -20,6 +20,8 @@
       width: 100vw;
       overflow: hidden;
     }
+
+    /* Top Sub-Header */
     #top_header {
       background-color: #1F1913;
       border-bottom: 1px solid #2E251E;
@@ -28,6 +30,7 @@
       align-items: center;
       justify-content: space-between;
       z-index: 100;
+      flex-shrink: 0;
     }
     .badge {
       background-color: #2E2218;
@@ -37,6 +40,15 @@
       border-radius: 6px;
       font-size: 11px;
       font-weight: bold;
+    }
+    #doc_metrics {
+      color: #A89F91;
+      font-size: 12px;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 55vw;
     }
     .btn-save {
       background-color: #B04A24;
@@ -48,6 +60,11 @@
       font-weight: bold;
       cursor: pointer;
     }
+    .btn-save:active {
+      background-color: #DD8B53;
+    }
+
+    /* Formatting Toolbar */
     #toolbar_container {
       background-color: #241D17;
       border-bottom: 1px solid #362A1F;
@@ -59,6 +76,7 @@
       white-space: nowrap;
       scrollbar-width: none;
       z-index: 90;
+      flex-shrink: 0;
     }
     #toolbar_container::-webkit-scrollbar {
       display: none;
@@ -80,164 +98,177 @@
       color: #FFFFFF;
       border-color: #DD8B53;
     }
-    /* Floating Line & Paragraph Action Bar */
-    #block_actions_bar {
-      display: none;
+    .t-sep {
+      width: 1px;
+      height: 20px;
+      background: #3D3126;
+      margin: 0 4px;
+      display: inline-block;
+    }
+
+    /* Quick Inline Action Bar */
+    #quick_actions_bar {
       background-color: #2D231B;
       border-bottom: 1px solid #B04A24;
       padding: 6px 10px;
+      display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       overflow-x: auto;
+      white-space: nowrap;
       scrollbar-width: none;
-      z-index: 80;
+      z-index: 85;
+      flex-shrink: 0;
     }
-    .block-btn {
+    #quick_actions_bar::-webkit-scrollbar {
+      display: none;
+    }
+    .action-btn {
       background-color: #171310;
       border: 1px solid #3D3126;
       color: #DD8B53;
-      padding: 5px 10px;
+      padding: 5px 11px;
       border-radius: 6px;
       font-size: 12px;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
-      white-space: nowrap;
     }
-    .block-btn:active {
+    .action-btn:active {
       background-color: #B04A24;
       color: #FFFFFF;
     }
+
+    /* Outer Scroll Wrapper - Document Desk (NO flex column collapse) */
     #editor_wrapper {
       flex: 1;
       overflow-y: auto;
-      padding: 16px 12px 80px 12px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      background-color: #171310;
+      overflow-x: hidden;
+      background-color: #ECE8E1;
+      padding: 16px 10px 100px 10px;
       -webkit-overflow-scrolling: touch;
+      display: block;
     }
+
+    /* Paper Document Canvas - Full Multi-Page Continuous Surface */
     #document_canvas {
+      box-sizing: border-box;
       width: 100%;
-      max-width: 840px;
-      min-height: 100vh;
-      background-color: #FFFFFF;
-      color: #1A1A1A;
+      max-width: 860px;
+      margin: 0 auto;
+      min-height: calc(100vh - 140px);
+      height: auto !important;
+      background-color: #FFFFFF !important;
+      color: #1A1A1A !important;
       padding: 28px 22px;
-      border-radius: 8px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      border-radius: 6px;
+      box-shadow: 0 3px 14px rgba(0, 0, 0, 0.15);
       outline: none;
       font-size: 15.5px;
       line-height: 1.65;
+      display: block;
+      overflow: visible;
+      word-break: break-word;
+      overflow-wrap: break-word;
     }
-    #document_canvas p, #document_canvas h1, #document_canvas h2, #document_canvas h3, #document_canvas li {
-      padding: 4px 6px;
-      border-radius: 4px;
-      transition: background 0.15s, border 0.15s;
-      cursor: text;
+
+    /* Guarantee High-Contrast Dark Text across all generated elements */
+    #document_canvas p,
+    #document_canvas span,
+    #document_canvas div,
+    #document_canvas h1,
+    #document_canvas h2,
+    #document_canvas h3,
+    #document_canvas h4,
+    #document_canvas h5,
+    #document_canvas h6,
+    #document_canvas li,
+    #document_canvas td,
+    #document_canvas th,
+    #document_canvas strong,
+    #document_canvas em,
+    #document_canvas b,
+    #document_canvas i {
+      color: #1A1A1A !important;
     }
-    .selected-block {
-      background-color: #FFF6F0 !important;
-      outline: 2px solid #B04A24 !important;
-    }
+
     #document_canvas p {
       margin-bottom: 12px;
+      min-height: 1.2em;
     }
+
     #document_canvas h1 {
-      font-size: 23px;
-      margin: 18px 0 10px 0;
-      color: #111111;
-      border-bottom: 1px solid #EAEAEA;
+      font-size: 24px;
+      margin: 20px 0 10px 0;
+      color: #111111 !important;
+      border-bottom: 1px solid #E2DDD5;
       padding-bottom: 6px;
     }
     #document_canvas h2 {
       font-size: 19px;
-      margin: 14px 0 8px 0;
-      color: #222222;
+      margin: 16px 0 8px 0;
+      color: #B04A24 !important;
+      border-bottom: 1px solid #EDE8E1;
+      padding-bottom: 4px;
     }
+    #document_canvas h3 {
+      font-size: 17px;
+      margin: 12px 0 6px 0;
+      color: #222222 !important;
+    }
+
     #document_canvas ul, #document_canvas ol {
       margin-left: 26px;
       margin-bottom: 14px;
     }
+    #document_canvas li {
+      margin-bottom: 6px;
+    }
+
+    /* Responsive Tables - Critical for Resumes & Reports */
     #document_canvas table {
-      width: 100%;
+      width: 100% !important;
+      max-width: 100% !important;
       border-collapse: collapse;
       margin: 14px 0;
+      background-color: #FFFFFF !important;
+      table-layout: auto;
     }
     #document_canvas td, #document_canvas th {
-      border: 1px solid #CCCCCC;
-      padding: 8px;
+      border: 1px solid #D5D0C8 !important;
+      padding: 8px 10px;
+      background-color: #FFFFFF !important;
+      color: #1A1A1A !important;
+      vertical-align: top;
+      word-break: break-word;
+      overflow-wrap: break-word;
     }
-    /* Dedicated Modal for Editing Specific Line/Paragraph */
-    #edit_modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      z-index: 10000;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
-    .modal-box {
-      background: #1F1913;
-      border: 1px solid #B04A24;
-      border-radius: 12px;
-      width: 100%;
-      max-width: 500px;
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .modal-title {
-      color: #F2ECE1;
-      font-size: 16px;
+    #document_canvas th {
+      background-color: #F8F6F2 !important;
       font-weight: bold;
     }
-    #modal_textarea {
-      width: 100%;
-      height: 140px;
-      background: #171310;
-      border: 1px solid #3D3126;
-      border-radius: 8px;
-      color: #FFFFFF;
-      padding: 10px;
-      font-size: 15px;
-      font-family: inherit;
-      outline: none;
-      resize: vertical;
+
+    /* Visual Page Separator */
+    .page-separator {
+      border-top: 2px dashed #C8C3BA;
+      margin: 32px 0;
+      position: relative;
+      text-align: center;
+      height: 1px;
     }
-    #modal_textarea:focus {
-      border-color: #DD8B53;
+    .page-separator::after {
+      content: attr(data-page-label);
+      position: relative;
+      top: -11px;
+      background: #ECE8E1;
+      padding: 2px 10px;
+      font-size: 11px;
+      color: #7D7365;
+      font-weight: 600;
+      border-radius: 10px;
+      border: 1px solid #D2CCC2;
     }
-    .modal-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-    }
-    .btn-cancel {
-      background: transparent;
-      border: 1px solid #3D3126;
-      color: #A89F91;
-      padding: 8px 14px;
-      border-radius: 6px;
-      font-size: 13px;
-      cursor: pointer;
-    }
-    .btn-apply {
-      background: #B04A24;
-      border: none;
-      color: #FFFFFF;
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: bold;
-      cursor: pointer;
-    }
+
+    /* Loading Overlay */
     #loading_overlay {
       position: absolute;
       top: 0;
@@ -269,7 +300,7 @@
   <div id="top_header">
     <div style="display:flex; align-items:center; gap:8px;">
       <span class="badge">DOCX</span>
-      <span id="doc_meta" style="color:#A89F91; font-size:12px;">Word Processor Suite</span>
+      <span id="doc_metrics">Opening Document...</span>
     </div>
     <button class="btn-save" onclick="saveDocument()">Save Word</button>
   </div>
@@ -280,139 +311,120 @@
     <button class="t-btn" onclick="execCmd('italic')"><i>I</i></button>
     <button class="t-btn" onclick="execCmd('underline')"><u>U</u></button>
     <button class="t-btn" onclick="execCmd('strikeThrough')"><s>S</s></button>
-    <div style="width:1px; height:20px; background:#3D3126; margin:0 4px;"></div>
+    <div class="t-sep"></div>
     <button class="t-btn" onclick="execFormatBlock('H1')">H1</button>
     <button class="t-btn" onclick="execFormatBlock('H2')">H2</button>
-    <button class="t-btn" onclick="execFormatBlock('P')">P</button>
-    <div style="width:1px; height:20px; background:#3D3126; margin:0 4px;"></div>
-    <button class="t-btn" onclick="execCmd('insertUnorderedList')">• List</button>
+    <button class="t-btn" onclick="execFormatBlock('P')">Normal</button>
+    <div class="t-sep"></div>
+    <button class="t-btn" onclick="execCmd('insertUnorderedList')">• Bullet</button>
     <button class="t-btn" onclick="execCmd('insertOrderedList')">1. List</button>
-    <div style="width:1px; height:20px; background:#3D3126; margin:0 4px;"></div>
+    <div class="t-sep"></div>
     <button class="t-btn" onclick="execCmd('justifyLeft')">Left</button>
     <button class="t-btn" onclick="execCmd('justifyCenter')">Center</button>
     <button class="t-btn" onclick="execCmd('justifyRight')">Right</button>
-    <div style="width:1px; height:20px; background:#3D3126; margin:0 4px;"></div>
+    <div class="t-sep"></div>
     <button class="t-btn" onclick="execCmd('undo')">↺</button>
     <button class="t-btn" onclick="execCmd('redo')">↻</button>
   </div>
 
-  <!-- Smart Line / Paragraph Touch Bar -->
-  <div id="block_actions_bar">
-    <span style="color:#DD8B53; font-size:12px; font-weight:bold; margin-right:4px;">Line:</span>
-    <button class="block-btn" onclick="openFocusEdit()">✏️ Edit Text</button>
-    <button class="block-btn" onclick="insertLineAbove()">+ Line Above</button>
-    <button class="block-btn" onclick="insertLineBelow()">+ Line Below</button>
-    <button class="block-btn" onclick="deleteSelectedBlock()">🗑 Delete</button>
+  <!-- Quick Paragraph & Line Toolbar -->
+  <div id="quick_actions_bar">
+    <span style="color:#DD8B53; font-size:11px; font-weight:bold;">Document:</span>
+    <button class="action-btn" onclick="insertParagraph()">+ Add Paragraph</button>
+    <button class="action-btn" onclick="deleteCurrentBlock()">🗑 Delete Line</button>
+    <button class="action-btn" onclick="execCmd('removeFormat')">Clear Style</button>
+    <button class="action-btn" onclick="scrollToTop()">↑ Top</button>
+    <button class="action-btn" onclick="scrollToBottom()">↓ Bottom</button>
   </div>
 
+  <!-- Main Scrollable Document Area (Pure Paper Canvas) -->
   <div id="editor_wrapper">
     <div id="document_canvas" contenteditable="true" spellcheck="false">
-      <p>Loading document...</p>
-    </div>
-  </div>
-
-  <!-- Focus Edit Modal for Mobile Precision -->
-  <div id="edit_modal">
-    <div class="modal-box">
-      <div class="modal-title">Edit Line / Paragraph</div>
-      <textarea id="modal_textarea" placeholder="Edit line content here..."></textarea>
-      <div class="modal-actions">
-        <button class="btn-cancel" onclick="closeFocusEdit()">Cancel</button>
-        <button class="btn-apply" onclick="applyFocusEdit()">Save Changes</button>
-      </div>
+      <p>Loading document pages...</p>
     </div>
   </div>
 
   <div id="loading_overlay">
     <div class="spinner"></div>
     <div style="margin-top:14px; color:#DD8B53; font-weight:600; font-size:14px;">Opening All Pages...</div>
-    <div style="margin-top:6px; color:#A89F91; font-size:11px;">100% On-Device Processing</div>
+    <div style="margin-top:6px; color:#A89F91; font-size:11px;">100% On-Device • Full Document Flow</div>
   </div>
 
   <script src="mammoth.browser.min.js"></script>
   <script src="html-docx.js"></script>
   <script>
     var originalFileName = 'document.docx';
-    var selectedElement = null;
 
     function execCmd(command, value) {
       document.execCommand(command, false, value || null);
-      document.getElementById('document_canvas').focus();
+      updateDocMetrics();
     }
 
     function execFormatBlock(tag) {
       document.execCommand('formatBlock', false, '<' + tag + '>');
-      document.getElementById('document_canvas').focus();
+      updateDocMetrics();
     }
 
-    // Touch selection handling
-    document.getElementById('document_canvas').addEventListener('click', function(e) {
-      var target = e.target;
-      while (target && target.parentNode && target.parentNode.id !== 'document_canvas' && target.id !== 'document_canvas') {
-        target = target.parentNode;
-      }
-      if (target && target.id !== 'document_canvas') {
-        selectBlock(target);
-      }
-    });
-
-    function selectBlock(el) {
-      if (selectedElement) {
-        selectedElement.classList.remove('selected-block');
-      }
-      selectedElement = el;
-      selectedElement.classList.add('selected-block');
-      document.getElementById('block_actions_bar').style.display = 'flex';
-    }
-
-    function openFocusEdit() {
-      if (!selectedElement) return;
-      var text = selectedElement.innerText || '';
-      document.getElementById('modal_textarea').value = text;
-      document.getElementById('edit_modal').style.display = 'flex';
-      setTimeout(() => document.getElementById('modal_textarea').focus(), 150);
-    }
-
-    function closeFocusEdit() {
-      document.getElementById('edit_modal').style.display = 'none';
-    }
-
-    function applyFocusEdit() {
-      if (!selectedElement) return;
-      var newText = document.getElementById('modal_textarea').value;
-      selectedElement.innerText = newText;
-      closeFocusEdit();
-    }
-
-    function insertLineAbove() {
-      if (!selectedElement) return;
+    function insertParagraph() {
+      var sel = window.getSelection();
       var p = document.createElement('p');
-      p.innerText = 'New paragraph';
-      selectedElement.parentNode.insertBefore(p, selectedElement);
-      selectBlock(p);
-    }
-
-    function insertLineBelow() {
-      if (!selectedElement) return;
-      var p = document.createElement('p');
-      p.innerText = 'New paragraph';
-      if (selectedElement.nextSibling) {
-        selectedElement.parentNode.insertBefore(p, selectedElement.nextSibling);
+      p.innerHTML = '<br>';
+      
+      if (sel && sel.rangeCount > 0) {
+        var range = sel.getRangeAt(0);
+        var node = range.commonAncestorContainer;
+        while (node && node.parentNode && node.parentNode.id !== 'document_canvas' && node.id !== 'document_canvas') {
+          node = node.parentNode;
+        }
+        if (node && node.id !== 'document_canvas' && node.parentNode) {
+          node.parentNode.insertBefore(p, node.nextSibling);
+        } else {
+          document.getElementById('document_canvas').appendChild(p);
+        }
       } else {
-        selectedElement.parentNode.appendChild(p);
+        document.getElementById('document_canvas').appendChild(p);
       }
-      selectBlock(p);
+      
+      // Focus the new paragraph
+      var newRange = document.createRange();
+      newRange.setStart(p, 0);
+      newRange.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+      p.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      updateDocMetrics();
     }
 
-    function deleteSelectedBlock() {
-      if (!selectedElement) return;
-      var parent = selectedElement.parentNode;
-      selectedElement.remove();
-      selectedElement = null;
-      document.getElementById('block_actions_bar').style.display = 'none';
-      if (parent && parent.children.length === 0) {
-        parent.innerHTML = '<p><br></p>';
+    function deleteCurrentBlock() {
+      var sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      var node = sel.getRangeAt(0).commonAncestorContainer;
+      while (node && node.parentNode && node.parentNode.id !== 'document_canvas' && node.id !== 'document_canvas') {
+        node = node.parentNode;
       }
+      if (node && node.id !== 'document_canvas' && node.parentNode) {
+        node.remove();
+        updateDocMetrics();
+      }
+    }
+
+    function scrollToTop() {
+      document.getElementById('editor_wrapper').scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function scrollToBottom() {
+      var wrapper = document.getElementById('editor_wrapper');
+      wrapper.scrollTo({ top: wrapper.scrollHeight, behavior: 'smooth' });
+    }
+
+    function updateDocMetrics() {
+      var canvas = document.getElementById('document_canvas');
+      var text = canvas.innerText || '';
+      var words = text.trim().length > 0 ? text.trim().split(/\s+/).length : 0;
+      var chars = text.length;
+      var estPages = Math.max(1, Math.ceil(chars / 1800));
+      document.getElementById('doc_metrics').innerText = 
+        estPages + (estPages === 1 ? ' Page' : ' Pages') + ' • ' + words + ' words';
     }
 
     function base64ToArrayBuffer(base64) {
@@ -442,13 +454,24 @@
         mammoth.convertToHtml({ arrayBuffer: arrayBuffer })
           .then(function(result) {
             var html = result.value || '<p>Empty Document</p>';
-            document.getElementById('document_canvas').innerHTML = html;
+            var canvas = document.getElementById('document_canvas');
+            canvas.innerHTML = html;
+            
+            // Clean up any empty containers and ensure all tables fit
+            var tables = canvas.getElementsByTagName('table');
+            for (var i = 0; i < tables.length; i++) {
+              tables[i].removeAttribute('width');
+              tables[i].style.width = '100%';
+            }
+
             document.getElementById('loading_overlay').style.display = 'none';
+            updateDocMetrics();
             notifyFlutter('loaded', { warnings: result.messages });
           })
           .catch(function(err) {
             console.error('Mammoth conversion error:', err);
-            document.getElementById('document_canvas').innerHTML = '<p>Unable to load formatting: ' + err.message + '</p>';
+            document.getElementById('document_canvas').innerHTML = 
+              '<p style="color:#B04A24; padding:16px;">Unable to load formatting: ' + err.message + '</p>';
             document.getElementById('loading_overlay').style.display = 'none';
             notifyFlutter('error', { error: err.message });
           });
@@ -462,10 +485,6 @@
 
     window.saveDocument = function() {
       try {
-        // Remove selection highlight before saving
-        if (selectedElement) {
-          selectedElement.classList.remove('selected-block');
-        }
         var canvasHtml = document.getElementById('document_canvas').innerHTML;
         var fullHtml = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' + canvasHtml + '</body></html>';
         
@@ -491,6 +510,11 @@
         console.log('Bridge message:', msg);
       }
     }
+
+    // Auto-update metrics on content edit
+    document.getElementById('document_canvas').addEventListener('input', function() {
+      updateDocMetrics();
+    });
 
     window.addEventListener('DOMContentLoaded', function() {
       setTimeout(function() {

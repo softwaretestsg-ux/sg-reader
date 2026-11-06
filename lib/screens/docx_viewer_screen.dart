@@ -28,7 +28,7 @@ class _DocxViewerScreenState extends State<DocxViewerScreen> {
   void _initWebView() {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(SGTheme.bgDark)
+      ..setBackgroundColor(const Color(0xFFECE8E1))
       ..addJavaScriptChannel(
         'SGReaderBridge',
         onMessageReceived: (JavaScriptMessage msg) {

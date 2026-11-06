@@ -62,12 +62,16 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _handleIncomingFileMap(Map<String, dynamic> fileMap) async {
     final filePath = fileMap['path'] as String?;
     final fileName = fileMap['name'] as String? ?? 'Document';
+    final mimeType = fileMap['mimeType'] as String?;
 
     if (filePath == null) return;
     final file = File(filePath);
     if (!await file.exists()) return;
 
-    final type = DocumentFile.detectType(fileName.isNotEmpty ? fileName : filePath);
+    final type = DocumentFile.detectType(
+      filePath,
+      mimeType: mimeType,
+    );
     final size = await file.length();
 
     final doc = DocumentFile(
@@ -100,6 +104,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openDocument(DocumentFile doc) {
+    if (doc.type == DocumentType.unknown) {
+      _showFormatSelectionDialog(doc);
+      return;
+    }
+
     Widget destination;
     switch (doc.type) {
       case DocumentType.pdf:
@@ -115,15 +124,74 @@ class _HomeScreenState extends State<HomeScreen> {
         destination = PptxViewerScreen(document: doc);
         break;
       default:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Unsupported format for viewing.")),
-        );
         return;
     }
 
     Navigator.push(context, MaterialPageRoute(builder: (_) => destination)).then((_) {
       _loadData();
     });
+  }
+
+  void _showFormatSelectionDialog(DocumentFile doc) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: SGTheme.surface,
+        title: const Text("Open With SG Reader", style: TextStyle(color: SGTheme.text)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("File: ${doc.name}", style: const TextStyle(color: SGTheme.textSecondary, fontSize: 13)),
+            const SizedBox(height: 12),
+            const Text("Choose how to open this document:", style: TextStyle(color: SGTheme.accent, fontSize: 13, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 14),
+            ListTile(
+              leading: const Icon(Icons.picture_as_pdf, color: Color(0xFFE5534B)),
+              title: const Text("PDF Viewer", style: TextStyle(color: SGTheme.text)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _openDocument(DocumentFile(
+                  path: doc.path,
+                  name: doc.name,
+                  sizeInBytes: doc.sizeInBytes,
+                  type: DocumentType.pdf,
+                  lastOpened: doc.lastOpened,
+                ));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.description, color: Color(0xFF4A7EBB)),
+              title: const Text("Word Processor (DOCX)", style: TextStyle(color: SGTheme.text)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _openDocument(DocumentFile(
+                  path: doc.path,
+                  name: doc.name,
+                  sizeInBytes: doc.sizeInBytes,
+                  type: DocumentType.word,
+                  lastOpened: doc.lastOpened,
+                ));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.table_chart, color: Color(0xFF2E7D32)),
+              title: const Text("Excel Spreadsheet (XLSX/CSV)", style: TextStyle(color: SGTheme.text)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _openDocument(DocumentFile(
+                  path: doc.path,
+                  name: doc.name,
+                  sizeInBytes: doc.sizeInBytes,
+                  type: DocumentType.excel,
+                  lastOpened: doc.lastOpened,
+                ));
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _pickAndOpenFile() async {
