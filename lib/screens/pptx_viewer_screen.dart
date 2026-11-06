@@ -17,6 +17,7 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
   final DocumentService _docService = DocumentService();
   List<List<String>> _slides = [];
   bool _isLoading = true;
+  bool _hasUnsavedEdits = false;
   int _currentSlideIndex = 0;
   final PageController _pageController = PageController();
 
