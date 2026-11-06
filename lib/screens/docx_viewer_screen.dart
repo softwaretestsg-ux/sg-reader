@@ -1,8 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import '../constants/theme.dart';
 import '../models/document_file.dart';
-import '../services/document_service.dart';
 
 class DocxViewerScreen extends StatefulWidget {
   final DocumentFile document;
@@ -14,39 +16,108 @@ class DocxViewerScreen extends StatefulWidget {
 }
 
 class _DocxViewerScreenState extends State<DocxViewerScreen> {
-  final DocumentService _docService = DocumentService();
-  List<String> _paragraphs = [];
-  bool _isLoading = true;
-  String _searchQuery = "";
-  final TextEditingController _searchController = TextEditingController();
-  bool _isSearching = false;
-  bool _hasUnsavedEdits = false;
+  late final WebViewController _controller;
+  bool _isDocumentLoaded = false;
 
   @override
   void initState() {
     super.initState();
-    _loadDocx();
+    _initWebView();
   }
 
-  Future<void> _loadDocx() async {
+  void _initWebView() {
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(SGTheme.bgDark)
+      ..addJavaScriptChannel(
+        'SGReaderBridge',
+        onMessageReceived: (JavaScriptMessage msg) {
+          _handleBridgeMessage(msg.message);
+        },
+      )
+      ..loadFlutterAsset('assets/offline_editors/word/word_editor.html');
+  }
+
+  Future<void> _sendDocumentToWebView() async {
     try {
-      final list = await _docService.parseDocxParagraphs(widget.document.path);
-      setState(() {
-        _paragraphs = list;
-        _isLoading = false;
-      });
+      final file = File(widget.document.path);
+      if (!await file.exists()) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Word document does not exist on disk.")),
+        );
+        return;
+      }
+      final bytes = await file.readAsBytes();
+      final base64String = base64Encode(bytes);
+      final filename = widget.document.name;
+
+      await _controller.runJavaScript(
+        "window.loadDocument('$base64String', '$filename');",
+      );
     } catch (e) {
-      setState(() {
-        _paragraphs = ["Error reading DOCX file: $e"];
-        _isLoading = false;
-      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error reading Word document: $e")),
+      );
     }
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  void _handleBridgeMessage(String rawJson) {
+    try {
+      final data = jsonDecode(rawJson);
+      final action = data['action'];
+      final payload = data['payload'] ?? {};
+
+      if (action == 'ready') {
+        _sendDocumentToWebView();
+      } else if (action == 'loaded') {
+        if (mounted) {
+          setState(() {
+            _isDocumentLoaded = true;
+          });
+        }
+      } else if (action == 'save') {
+        _saveFileFromBase64(payload['base64']);
+      } else if (action == 'error') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Word engine notice: ${payload['error']}"),
+              backgroundColor: SGTheme.accentDeep,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Bridge parsing error: $e");
+    }
+  }
+
+  Future<void> _saveFileFromBase64(String base64Data) async {
+    try {
+      final bytes = base64Decode(base64Data);
+      final file = File(widget.document.path);
+      await file.writeAsBytes(bytes, flush: true);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("✅ Word document saved directly to device storage."),
+          backgroundColor: Color(0xFF4F7A4A),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to save Word document: $e"), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  void _triggerSave() {
+    _controller.runJavaScript("window.saveDocument();");
   }
 
   Future<void> _shareDocument() async {
@@ -62,241 +133,41 @@ class _DocxViewerScreenState extends State<DocxViewerScreen> {
     }
   }
 
-  void _editParagraph(int index, String currentText) {
-    final textController = TextEditingController(text: currentText);
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: SGTheme.surface,
-        title: Text(
-          "Edit Paragraph ${index + 1}",
-          style: const TextStyle(color: SGTheme.text, fontSize: 16),
-        ),
-        content: TextField(
-          controller: textController,
-          autofocus: true,
-          maxLines: 5,
-          style: const TextStyle(color: SGTheme.text),
-          decoration: InputDecoration(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            labelText: "Paragraph Content",
-            labelStyle: const TextStyle(color: SGTheme.textSecondary),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: SGTheme.accent),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel", style: TextStyle(color: SGTheme.textMuted)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: SGTheme.accentDeep),
-            onPressed: () async {
-              final newText = textController.text;
-              Navigator.pop(ctx);
-
-              setState(() {
-                _paragraphs[index] = newText;
-                _hasUnsavedEdits = true;
-              });
-
-              await _docService.saveDocxParagraphs(widget.document.path, _paragraphs);
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Paragraph updated and saved to Word document."),
-                  duration: Duration(seconds: 1),
-                ),
-              );
-            },
-            child: const Text("Save", style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _addParagraph() {
-    final textController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: SGTheme.surface,
-        title: const Text("Add New Paragraph", style: TextStyle(color: SGTheme.text, fontSize: 16)),
-        content: TextField(
-          controller: textController,
-          autofocus: true,
-          maxLines: 4,
-          style: const TextStyle(color: SGTheme.text),
-          decoration: InputDecoration(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            labelText: "New Paragraph Text",
-            labelStyle: const TextStyle(color: SGTheme.textSecondary),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: SGTheme.accent),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel", style: TextStyle(color: SGTheme.textMuted)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: SGTheme.accentDeep),
-            onPressed: () async {
-              final newText = textController.text.trim();
-              Navigator.pop(ctx);
-              if (newText.isEmpty) return;
-
-              setState(() {
-                _paragraphs.add(newText);
-                _hasUnsavedEdits = true;
-              });
-
-              await _docService.saveDocxParagraphs(widget.document.path, _paragraphs);
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("New paragraph added and saved.")),
-              );
-            },
-            child: const Text("Add & Save", style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final filtered = _searchQuery.isEmpty
-        ? _paragraphs
-        : _paragraphs.where((p) => p.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
-
     return Scaffold(
       backgroundColor: SGTheme.bgDark,
       appBar: AppBar(
         backgroundColor: SGTheme.surface,
-        title: _isSearching
-            ? TextField(
-                controller: _searchController,
-                autofocus: true,
-                style: const TextStyle(color: SGTheme.text),
-                decoration: const InputDecoration(
-                  hintText: "Search in document...",
-                  hintStyle: TextStyle(color: SGTheme.textMuted),
-                  border: InputBorder.none,
-                ),
-                onChanged: (val) {
-                  setState(() {
-                    _searchQuery = val;
-                  });
-                },
-              )
-            : Text(
-                widget.document.name,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: SGTheme.text),
-                overflow: TextOverflow.ellipsis,
-              ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.document.name,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: SGTheme.text),
+              overflow: TextOverflow.ellipsis,
+            ),
+            const Text(
+              "Word Processor (DOCX • Rich Text WYSIWYG)",
+              style: TextStyle(fontSize: 11, color: SGTheme.accent),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
-            icon: Icon(_isSearching ? Icons.close : Icons.search, color: SGTheme.text),
-            onPressed: () {
-              setState(() {
-                if (_isSearching) {
-                  _isSearching = false;
-                  _searchQuery = "";
-                  _searchController.clear();
-                } else {
-                  _isSearching = true;
-                }
-              });
-            },
-          ),
-          IconButton(
-            icon: Icon(
-              _hasUnsavedEdits ? Icons.save : Icons.save_outlined,
-              color: _hasUnsavedEdits ? SGTheme.accent : SGTheme.textSecondary,
-            ),
+            icon: const Icon(Icons.save_outlined, color: SGTheme.accent),
             tooltip: "Save Word Document",
-            onPressed: () async {
-              await _docService.saveDocxParagraphs(widget.document.path, _paragraphs);
-              setState(() => _hasUnsavedEdits = false);
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("✅ Word document saved to storage."),
-                  backgroundColor: Color(0xFF4F7A4A),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
+            onPressed: _triggerSave,
           ),
           IconButton(
-            icon: const Icon(Icons.share_outlined, color: SGTheme.accent),
+            icon: const Icon(Icons.share_outlined, color: SGTheme.textSecondary),
             tooltip: "Share Word Document",
             onPressed: _shareDocument,
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: SGTheme.accent))
-          : filtered.isEmpty
-              ? const Center(
-                  child: Text("No text content found in document.", style: TextStyle(color: SGTheme.textSecondary)),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                  itemCount: filtered.length,
-                  itemBuilder: (ctx, index) {
-                    final paragraph = filtered[index];
-                    final isTable = paragraph.startsWith("[Table Row]");
-
-                    if (isTable) {
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: SGTheme.surface,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: SGTheme.border),
-                        ),
-                        child: Text(
-                          paragraph,
-                          style: const TextStyle(color: SGTheme.accent, fontSize: 13, fontFamily: 'monospace'),
-                        ),
-                      );
-                    }
-
-                    return InkWell(
-                      onTap: () => _editParagraph(index, paragraph),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                        child: Text(
-                          paragraph,
-                          style: const TextStyle(
-                            color: SGTheme.text,
-                            fontSize: 15,
-                            height: 1.55,
-                            letterSpacing: 0.2,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: SGTheme.accentDeep,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text("Add Paragraph", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        onPressed: _addParagraph,
+      body: SafeArea(
+        child: WebViewWidget(controller: _controller),
       ),
     );
   }

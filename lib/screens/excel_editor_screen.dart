@@ -1,8 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import '../constants/theme.dart';
 import '../models/document_file.dart';
-import '../services/document_service.dart';
 
 class ExcelEditorScreen extends StatefulWidget {
   final DocumentFile document;
@@ -14,33 +16,108 @@ class ExcelEditorScreen extends StatefulWidget {
 }
 
 class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
-  final DocumentService _docService = DocumentService();
-  bool _isLoading = true;
-  Map<String, List<List<dynamic>>> _sheetsData = {};
-  String _currentSheet = '';
-  bool _hasUnsavedEdits = false;
+  late final WebViewController _controller;
+  bool _isDocumentLoaded = false;
 
   @override
   void initState() {
     super.initState();
-    _loadExcel();
+    _initWebView();
   }
 
-  Future<void> _loadExcel() async {
+  void _initWebView() {
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(SGTheme.bgDark)
+      ..addJavaScriptChannel(
+        'SGReaderBridge',
+        onMessageReceived: (JavaScriptMessage msg) {
+          _handleBridgeMessage(msg.message);
+        },
+      )
+      ..loadFlutterAsset('assets/offline_editors/excel/excel_editor.html');
+  }
+
+  Future<void> _sendDocumentToWebView() async {
     try {
-      final data = await _docService.readExcel(widget.document.path);
-      setState(() {
-        _sheetsData = data;
-        if (data.isNotEmpty) {
-          _currentSheet = data.keys.first;
-        }
-        _isLoading = false;
-      });
+      final file = File(widget.document.path);
+      if (!await file.exists()) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Spreadsheet file does not exist on disk.")),
+        );
+        return;
+      }
+      final bytes = await file.readAsBytes();
+      final base64String = base64Encode(bytes);
+      final filename = widget.document.name;
+
+      await _controller.runJavaScript(
+        "window.loadDocument('$base64String', '$filename');",
+      );
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error reading spreadsheet: $e")),
+      );
     }
+  }
+
+  void _handleBridgeMessage(String rawJson) {
+    try {
+      final data = jsonDecode(rawJson);
+      final action = data['action'];
+      final payload = data['payload'] ?? {};
+
+      if (action == 'ready') {
+        _sendDocumentToWebView();
+      } else if (action == 'loaded') {
+        if (mounted) {
+          setState(() {
+            _isDocumentLoaded = true;
+          });
+        }
+      } else if (action == 'save') {
+        _saveFileFromBase64(payload['base64']);
+      } else if (action == 'error') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Spreadsheet engine: ${payload['error']}"),
+              backgroundColor: SGTheme.accentDeep,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Bridge parsing error: $e");
+    }
+  }
+
+  Future<void> _saveFileFromBase64(String base64Data) async {
+    try {
+      final bytes = base64Decode(base64Data);
+      final file = File(widget.document.path);
+      await file.writeAsBytes(bytes, flush: true);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("✅ Spreadsheet saved directly to device storage."),
+          backgroundColor: Color(0xFF4F7A4A),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to save spreadsheet: $e"), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  void _triggerSave() {
+    _controller.runJavaScript("window.saveDocument();");
   }
 
   Future<void> _shareSpreadsheet() async {
@@ -56,89 +133,8 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
     }
   }
 
-  void _editCell(int rowIndex, int colIndex, String currentValue) {
-    final textController = TextEditingController(text: currentValue);
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: SGTheme.surface,
-        title: Text(
-          "Edit Cell [R${rowIndex + 1}:C${colIndex + 1}]",
-          style: const TextStyle(color: SGTheme.text, fontSize: 16),
-        ),
-        content: TextField(
-          controller: textController,
-          autofocus: true,
-          style: const TextStyle(color: SGTheme.text),
-          decoration: InputDecoration(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            labelText: "Cell Value",
-            labelStyle: const TextStyle(color: SGTheme.textSecondary),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: SGTheme.accent),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel", style: TextStyle(color: SGTheme.textMuted)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: SGTheme.accentDeep),
-            onPressed: () async {
-              final newVal = textController.text;
-              Navigator.pop(ctx);
-
-              setState(() {
-                _sheetsData[_currentSheet]![rowIndex][colIndex] = newVal;
-                _hasUnsavedEdits = true;
-              });
-
-              await _docService.saveExcelCell(
-                widget.document.path,
-                _currentSheet,
-                rowIndex,
-                colIndex,
-                newVal,
-              );
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Cell saved to spreadsheet."),
-                  duration: Duration(seconds: 1),
-                ),
-              );
-            },
-            child: const Text("Save Cell", style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _addNewRow() {
-    final rows = _sheetsData[_currentSheet] ?? [];
-    final colCount = rows.isNotEmpty ? rows.first.length : 3;
-    final newRow = List.generate(colCount, (index) => "");
-
-    setState(() {
-      _sheetsData[_currentSheet]!.add(newRow);
-    });
-
-    _docService.addExcelRow(widget.document.path, _currentSheet, newRow);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("New row added and saved.")),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final rows = _sheetsData[_currentSheet] ?? [];
-
     return Scaffold(
       backgroundColor: SGTheme.bgDark,
       appBar: AppBar(
@@ -152,119 +148,26 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
               overflow: TextOverflow.ellipsis,
             ),
             const Text(
-              "Spreadsheet Editor (Tap cell to edit)",
+              "Spreadsheet Suite (XLS, XLSX, CSV • Formula Engine)",
               style: TextStyle(fontSize: 11, color: SGTheme.accent),
             ),
           ],
         ),
         actions: [
           IconButton(
-            icon: Icon(
-              _hasUnsavedEdits ? Icons.save : Icons.save_outlined,
-              color: _hasUnsavedEdits ? SGTheme.accent : SGTheme.textSecondary,
-            ),
+            icon: const Icon(Icons.save_outlined, color: SGTheme.accent),
             tooltip: "Save Spreadsheet",
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("✅ Spreadsheet saved to storage."),
-                  backgroundColor: Color(0xFF4F7A4A),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-              setState(() => _hasUnsavedEdits = false);
-            },
+            onPressed: _triggerSave,
           ),
           IconButton(
-            icon: const Icon(Icons.share_outlined, color: SGTheme.accent),
+            icon: const Icon(Icons.share_outlined, color: SGTheme.textSecondary),
             tooltip: "Share Spreadsheet",
             onPressed: _shareSpreadsheet,
           ),
-          if (_sheetsData.keys.length > 1)
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.table_chart_outlined, color: SGTheme.text),
-              tooltip: "Switch Sheet",
-              color: SGTheme.surface,
-              onSelected: (sheet) {
-                setState(() {
-                  _currentSheet = sheet;
-                });
-              },
-              itemBuilder: (ctx) => _sheetsData.keys
-                  .map(
-                    (s) => PopupMenuItem(
-                      value: s,
-                      child: Text(
-                        s,
-                        style: TextStyle(
-                          color: SGTheme.text,
-                          fontWeight: s == _currentSheet ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: SGTheme.accent))
-          : rows.isEmpty
-              ? const Center(
-                  child: Text("Sheet has no readable data.", style: TextStyle(color: SGTheme.textSecondary)),
-                )
-              : Column(
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.vertical,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: DataTable(
-                            headingRowColor: MaterialStateProperty.all(SGTheme.surfaceHover),
-                            dataRowColor: MaterialStateProperty.resolveWith<Color?>(
-                              (states) => SGTheme.surface.withOpacity(0.6),
-                            ),
-                            columns: List.generate(
-                              rows.first.length,
-                              (index) => DataColumn(
-                                label: Text(
-                                  String.fromCharCode(65 + (index % 26)),
-                                  style: const TextStyle(color: SGTheme.accent, fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ),
-                            rows: List.generate(
-                              rows.length,
-                              (rIndex) => DataRow(
-                                cells: List.generate(
-                                  rows[rIndex].length,
-                                  (cIndex) {
-                                    final cellVal = rows[rIndex][cIndex]?.toString() ?? "";
-                                    return DataCell(
-                                      Text(
-                                        cellVal.isEmpty ? "—" : cellVal,
-                                        style: TextStyle(
-                                          color: cellVal.isEmpty ? SGTheme.textMuted : SGTheme.text,
-                                        ),
-                                      ),
-                                      onTap: () => _editCell(rIndex, cIndex, cellVal),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: SGTheme.accentDeep,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text("Add Row", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        onPressed: _addNewRow,
+      body: SafeArea(
+        child: WebViewWidget(controller: _controller),
       ),
     );
   }

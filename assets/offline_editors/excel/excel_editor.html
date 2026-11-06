@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Social Googol SG Spreadsheet</title>
+  <link rel="stylesheet" href="xspreadsheet.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #171310;
+      color: #F2ECE1;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+    }
+    #top_bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background-color: #1F1913;
+      border-bottom: 1px solid #2E251E;
+      font-size: 13px;
+    }
+    .badge {
+      background-color: #2E2218;
+      border: 1px solid #B04A24;
+      color: #DD8B53;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .btn-action {
+      background-color: #B04A24;
+      color: #FFFFFF;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #grid_container {
+      flex: 1;
+      width: 100%;
+      height: calc(100vh - 46px);
+      background-color: #FFFFFF;
+    }
+    /* Mobile tweaks for xspreadsheet */
+    .x-spreadsheet {
+      height: 100% !important;
+      width: 100% !important;
+    }
+    #loading_overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #171310;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .spinner {
+      border: 4px solid #2E251E;
+      border-top: 4px solid #DD8B53;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div id="top_bar">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="badge" id="doc_format_badge">EXCEL</span>
+      <span id="doc_status" style="color:#A89F91;">Offline Sandbox</span>
+    </div>
+    <button class="btn-action" id="btn_save" onclick="saveDocument()">Save File</button>
+  </div>
+
+  <div id="grid_container"></div>
+
+  <div id="loading_overlay">
+    <div class="spinner"></div>
+    <div style="margin-top:14px; color:#DD8B53; font-weight:600; font-size:14px;">Loading Spreadsheet...</div>
+    <div style="margin-top:6px; color:#A89F91; font-size:11px;">100% On-Device Processing</div>
+  </div>
+
+  <script src="xlsx.full.min.js"></script>
+  <script src="xspreadsheet.js"></script>
+  <script>
+    var xs = null;
+    var currentFormat = 'xlsx';
+    var originalFileName = '';
+
+    function initGrid() {
+      var container = document.getElementById('grid_container');
+      xs = x_spreadsheet('#grid_container', {
+        showToolbar: true,
+        showGrid: true,
+        showContextmenu: true,
+        view: {
+          height: () => container.clientHeight,
+          width: () => container.clientWidth,
+        },
+        row: {
+          len: 100,
+          height: 25,
+        },
+        col: {
+          len: 26,
+          width: 90,
+          indexWidth: 40,
+          minWidth: 50,
+        }
+      });
+      xs.change(function(data) {
+        // notify change if needed
+      });
+    }
+
+    // Convert SheetJS workbook to x-spreadsheet data format
+    function stox(wb) {
+      var out = [];
+      wb.SheetNames.forEach(function(name) {
+        var o = { name: name, rows: {} };
+        var ws = wb.Sheets[name];
+        if (!ws) return;
+        var ref = ws['!ref'] || 'A1:A1';
+        var range = XLSX.utils.decode_range(ref);
+        for (var R = range.s.r; R <= range.e.r; ++R) {
+          var row = {};
+          var hasCells = false;
+          for (var C = range.s.c; C <= range.e.c; ++C) {
+            var cell = ws[XLSX.utils.encode_cell({c: C, r: R})];
+            if (!cell) continue;
+            var cellObj = { text: cell.w || (cell.v != null ? String(cell.v) : '') };
+            if (cell.f) cellObj.formula = cell.f;
+            row[C] = cellObj;
+            hasCells = true;
+          }
+          if (hasCells) {
+            o.rows[R] = { cells: row };
+          }
+        }
+        out.push(o);
+      });
+      return out;
+    }
+
+    // Convert x-spreadsheet data format to SheetJS workbook
+    function xtos(sdata) {
+      var out = XLSX.utils.book_new();
+      sdata.forEach(function(xws) {
+        var ws = {};
+        var rowKeys = Object.keys(xws.rows || {});
+        var maxR = 0, maxC = 0;
+        rowKeys.forEach(function(r) {
+          var ri = parseInt(r, 10);
+          if (ri > maxR) maxR = ri;
+          var cells = xws.rows[r].cells || {};
+          Object.keys(cells).forEach(function(c) {
+            var ci = parseInt(c, 10);
+            if (ci > maxC) maxC = ci;
+            var cell = cells[c];
+            if (!cell) return;
+            var val = cell.text || '';
+            var cellObj = { t: 's', v: val };
+            if (!isNaN(val) && val.trim() !== '') {
+              cellObj = { t: 'n', v: Number(val) };
+            }
+            if (cell.formula) {
+              cellObj.f = cell.formula;
+            }
+            ws[XLSX.utils.encode_cell({c: ci, r: ri})] = cellObj;
+          });
+        });
+        ws['!ref'] = XLSX.utils.encode_range({s: {c: 0, r: 0}, e: {c: maxC, r: maxR}});
+        XLSX.utils.book_append_sheet(out, ws, xws.name || 'Sheet1');
+      });
+      return out;
+    }
+
+    // API called by Flutter via runJavaScript
+    window.loadDocument = function(base64Data, filename) {
+      try {
+        originalFileName = filename || 'document.xlsx';
+        var ext = originalFileName.split('.').pop().toLowerCase();
+        currentFormat = (ext === 'xls' || ext === 'csv') ? ext : 'xlsx';
+        document.getElementById('doc_format_badge').innerText = currentFormat.toUpperCase();
+
+        var wb = XLSX.read(base64Data, { type: 'base64' });
+        var xdata = stox(wb);
+
+        if (!xs) initGrid();
+
+        if (xdata.length > 0) {
+          xs.loadData(xdata);
+        } else {
+          xs.loadData([{ name: 'Sheet1', rows: {} }]);
+        }
+
+        document.getElementById('loading_overlay').style.display = 'none';
+        notifyFlutter('loaded', { sheetCount: wb.SheetNames.length });
+      } catch (err) {
+        console.error('Error in loadDocument:', err);
+        document.getElementById('loading_overlay').innerHTML = 
+          '<div style="color:#E5534B; padding:20px; text-align:center;">' +
+          '<b>Failed to open spreadsheet:</b><br>' + err.message + '</div>';
+        notifyFlutter('error', { error: err.message });
+      }
+    };
+
+    // Save document and trigger Flutter bridge
+    window.saveDocument = function() {
+      try {
+        if (!xs) return;
+        var xdata = xs.getData();
+        var wb = xtos(xdata);
+        var bookType = (currentFormat === 'csv') ? 'csv' : 'xlsx';
+        var base64Output = XLSX.write(wb, { bookType: bookType, type: 'base64' });
+
+        notifyFlutter('save', {
+          base64: base64Output,
+          filename: originalFileName,
+          format: bookType
+        });
+      } catch (err) {
+        console.error('Error saving document:', err);
+        notifyFlutter('error', { error: err.message });
+      }
+    };
+
+    function notifyFlutter(action, payload) {
+      var msg = JSON.stringify({ action: action, payload: payload });
+      if (window.SGReaderBridge) {
+        window.SGReaderBridge.postMessage(msg);
+      } else {
+        console.log('Bridge message:', msg);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', function() {
+      initGrid();
+      // Inform Flutter that WebView engine is ready to receive document
+      setTimeout(function() {
+        notifyFlutter('ready', {});
+      }, 300);
+    });
+  </script>
+</body>
+</html>

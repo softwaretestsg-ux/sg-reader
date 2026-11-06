@@ -18,6 +18,7 @@ dependencies:
   path_provider: ^2.1.2
   local_auth: ^2.1.8
   share_plus: ^10.1.2
+  webview_flutter: ^4.10.0
 
   # Document engines (Robust, Active, Fully Tested on Android 10-15)
   syncfusion_flutter_pdfviewer: ^28.2.12
@@ -38,3 +39,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/offline_editors/excel/
+    - assets/offline_editors/word/
