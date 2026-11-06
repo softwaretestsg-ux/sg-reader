@@ -17,6 +17,7 @@ dependencies:
   file_picker: ^8.0.0
   path_provider: ^2.1.2
   local_auth: ^2.1.8
+  share_plus: ^10.1.2
 
   # Document engines (Robust, Active, Fully Tested on Android 10-15)
   syncfusion_flutter_pdfviewer: ^28.2.12

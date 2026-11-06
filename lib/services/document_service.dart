@@ -12,13 +12,12 @@ import '../models/document_file.dart';
 class DocumentService {
   static const String _recentDocsKey = 'recent_documents_v1';
 
-  /// Picks a document reliably across all Android versions (Android 9 to 15)
-  /// Copies the file to the app's safe internal documents directory to bypass Scoped Storage file locks.
+  /// Picks a document reliably across all Android versions
   Future<DocumentFile?> pickDocument() async {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.any,
-        withData: true, // Guarantees in-memory byte access from Android ContentProviders
+        withData: true,
       );
 
       if (result == null || result.files.isEmpty) {
@@ -29,7 +28,6 @@ class DocumentService {
       final fileName = pickedFile.name;
       final docType = DocumentFile.detectType(fileName);
 
-      // Persist the file into the app's private application documents directory
       final appDir = await getApplicationDocumentsDirectory();
       final localSafePath = '${appDir.path}/$fileName';
       final safeFile = File(localSafePath);
@@ -43,7 +41,6 @@ class DocumentService {
         }
       }
 
-      // Check if file is on disk and has readable length
       int length = 0;
       if (await safeFile.exists()) {
         length = await safeFile.length();
@@ -67,7 +64,7 @@ class DocumentService {
     }
   }
 
-  /// Saves a document to local recent history
+  /// Saves recent document entry
   Future<void> saveRecentDocument(DocumentFile doc) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -87,7 +84,7 @@ class DocumentService {
     }
   }
 
-  /// Retrieves list of recently opened files
+  /// Retrieves list of recent documents
   Future<List<DocumentFile>> getRecentDocuments() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -109,7 +106,83 @@ class DocumentService {
     }
   }
 
-  /// Robust DOCX Parser: Extracts paragraphs, headings, and table cells (100% offline)
+  // ==========================================
+  // 1. PDF OPERATIONS (READ / SAVE)
+  // ==========================================
+
+  Future<void> savePdfBytes(String filePath, List<int> bytes) async {
+    final file = File(filePath);
+    await file.writeAsBytes(bytes, flush: true);
+  }
+
+  // ==========================================
+  // 2. EXCEL OPERATIONS (READ / EDIT / SAVE)
+  // ==========================================
+
+  Future<Map<String, List<List<dynamic>>>> readExcel(String filePath) async {
+    try {
+      final bytes = await File(filePath).readAsBytes();
+      final excel = xls.Excel.decodeBytes(bytes);
+
+      Map<String, List<List<dynamic>>> sheetsData = {};
+
+      for (var table in excel.tables.keys) {
+        List<List<dynamic>> rows = [];
+        for (var row in excel.tables[table]!.rows) {
+          rows.add(row.map((cell) => cell?.value?.toString() ?? "").toList());
+        }
+        sheetsData[table] = rows;
+      }
+
+      return sheetsData;
+    } catch (e) {
+      debugPrint("Error reading Excel: $e");
+      return {};
+    }
+  }
+
+  Future<void> saveExcelCell(
+    String filePath,
+    String sheetName,
+    int rowIndex,
+    int colIndex,
+    String newValue,
+  ) async {
+    final bytes = await File(filePath).readAsBytes();
+    final excel = xls.Excel.decodeBytes(bytes);
+
+    final sheet = excel[sheetName];
+    sheet.cell(xls.CellIndex.indexByColumnRow(columnIndex: colIndex, rowIndex: rowIndex)).value =
+        xls.TextCellValue(newValue);
+
+    final encoded = excel.encode();
+    if (encoded != null) {
+      await File(filePath).writeAsBytes(encoded, flush: true);
+    }
+  }
+
+  Future<void> addExcelRow(String filePath, String sheetName, List<String> rowValues) async {
+    final bytes = await File(filePath).readAsBytes();
+    final excel = xls.Excel.decodeBytes(bytes);
+
+    final sheet = excel[sheetName];
+    final currentRowsCount = sheet.maxRows;
+
+    for (int col = 0; col < rowValues.length; col++) {
+      sheet.cell(xls.CellIndex.indexByColumnRow(columnIndex: col, rowIndex: currentRowsCount)).value =
+          xls.TextCellValue(rowValues[col]);
+    }
+
+    final encoded = excel.encode();
+    if (encoded != null) {
+      await File(filePath).writeAsBytes(encoded, flush: true);
+    }
+  }
+
+  // ==========================================
+  // 3. WORD (DOCX) OPERATIONS (READ / EDIT / SAVE)
+  // ==========================================
+
   Future<List<String>> parseDocxParagraphs(String filePath) async {
     try {
       final bytes = await File(filePath).readAsBytes();
@@ -122,8 +195,6 @@ class DocumentService {
       final document = XmlDocument.parse(xmlContent);
 
       List<String> textBlocks = [];
-
-      // Extract all paragraphs
       final paragraphs = document.findAllElements('w:p');
       for (var p in paragraphs) {
         final textNodes = p.findAllElements('w:t');
@@ -133,29 +204,49 @@ class DocumentService {
         }
       }
 
-      // Also extract any table content
-      final tables = document.findAllElements('w:tbl');
-      for (var tbl in tables) {
-        final rows = tbl.findAllElements('w:tr');
-        for (var r in rows) {
-          final cells = r.findAllElements('w:tc');
-          final rowTexts = cells
-              .map((c) => c.findAllElements('w:t').map((n) => n.text).join(' ').trim())
-              .where((t) => t.isNotEmpty)
-              .join('  |  ');
-          if (rowTexts.isNotEmpty) {
-            textBlocks.add("[Table Row] $rowTexts");
-          }
-        }
-      }
-
       return textBlocks.isEmpty ? ["Document has no readable text content."] : textBlocks;
     } catch (e) {
       return ["Error reading DOCX file: $e"];
     }
   }
 
-  /// Robust PPTX Slide Text Extractor (100% offline)
+  /// Edits and saves DOCX paragraphs back to the ZIP archive
+  Future<void> saveDocxParagraphs(String filePath, List<String> updatedParagraphs) async {
+    final bytes = await File(filePath).readAsBytes();
+    final archive = ZipDecoder().decodeBytes(bytes);
+
+    // Build fresh word/document.xml with updated paragraphs
+    final buffer = StringBuffer();
+    buffer.write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>');
+    buffer.write('<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">');
+    buffer.write('<w:body>');
+    for (var para in updatedParagraphs) {
+      buffer.write('<w:p><w:r><w:t>${_escapeXml(para)}</w:t></w:r></w:p>');
+    }
+    buffer.write('</w:body></w:document>');
+
+    final newXmlBytes = utf8.encode(buffer.toString());
+
+    // Create updated archive
+    final updatedArchive = Archive();
+    for (final file in archive) {
+      if (file.name == 'word/document.xml') {
+        updatedArchive.addFile(ArchiveFile('word/document.xml', newXmlBytes.length, newXmlBytes));
+      } else {
+        updatedArchive.addFile(file);
+      }
+    }
+
+    final encodedZip = ZipEncoder().encode(updatedArchive);
+    if (encodedZip != null) {
+      await File(filePath).writeAsBytes(encodedZip, flush: true);
+    }
+  }
+
+  // ==========================================
+  // 4. POWERPOINT (PPTX) OPERATIONS (READ / EDIT / SAVE)
+  // ==========================================
+
   Future<List<List<String>>> parsePptxSlides(String filePath) async {
     try {
       final bytes = await File(filePath).readAsBytes();
@@ -192,47 +283,51 @@ class DocumentService {
     }
   }
 
-  /// Reads Excel spreadsheet data (100% offline)
-  Future<Map<String, List<List<dynamic>>>> readExcel(String filePath) async {
-    try {
-      final bytes = await File(filePath).readAsBytes();
-      final excel = xls.Excel.decodeBytes(bytes);
+  /// Updates and saves a PPTX slide back to the ZIP archive
+  Future<void> savePptxSlide(String filePath, int slideIndex, List<String> updatedLines) async {
+    final bytes = await File(filePath).readAsBytes();
+    final archive = ZipDecoder().decodeBytes(bytes);
 
-      Map<String, List<List<dynamic>>> sheetsData = {};
+    final slideName = 'ppt/slides/slide${slideIndex + 1}.xml';
 
-      for (var table in excel.tables.keys) {
-        List<List<dynamic>> rows = [];
-        for (var row in excel.tables[table]!.rows) {
-          rows.add(row.map((cell) => cell?.value?.toString() ?? "").toList());
-        }
-        sheetsData[table] = rows;
+    // Simple valid PPTX slide XML layout
+    final buffer = StringBuffer();
+    buffer.write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>');
+    buffer.write('<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">');
+    buffer.write('<p:cSld><p:spTree>');
+    buffer.write('<p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>');
+    for (int i = 0; i < updatedLines.length; i++) {
+      buffer.write('<p:sp>');
+      buffer.write('<p:nvSpPr><p:cNvPr id="${i + 2}" name="Text ${i + 1}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>');
+      buffer.write('<p:spPr/>');
+      buffer.write('<p:txBody><a:bodyPr/><a:p><a:r><a:t>${_escapeXml(updatedLines[i])}</a:t></a:r></a:p></p:txBody>');
+      buffer.write('</p:sp>');
+    }
+    buffer.write('</p:spTree></p:cSld></p:sld>');
+
+    final newXmlBytes = utf8.encode(buffer.toString());
+
+    final updatedArchive = Archive();
+    for (final file in archive) {
+      if (file.name == slideName) {
+        updatedArchive.addFile(ArchiveFile(slideName, newXmlBytes.length, newXmlBytes));
+      } else {
+        updatedArchive.addFile(file);
       }
+    }
 
-      return sheetsData;
-    } catch (e) {
-      debugPrint("Error reading Excel: $e");
-      return {};
+    final encodedZip = ZipEncoder().encode(updatedArchive);
+    if (encodedZip != null) {
+      await File(filePath).writeAsBytes(encodedZip, flush: true);
     }
   }
 
-  /// Saves updated Excel cell to disk
-  Future<void> saveExcelCell(
-    String filePath,
-    String sheetName,
-    int rowIndex,
-    int colIndex,
-    String newValue,
-  ) async {
-    final bytes = await File(filePath).readAsBytes();
-    final excel = xls.Excel.decodeBytes(bytes);
-
-    final sheet = excel[sheetName];
-    sheet.cell(xls.CellIndex.indexByColumnRow(columnIndex: colIndex, rowIndex: rowIndex)).value =
-        xls.TextCellValue(newValue);
-
-    final encoded = excel.encode();
-    if (encoded != null) {
-      await File(filePath).writeAsBytes(encoded, flush: true);
-    }
+  static String _escapeXml(String input) {
+    return input
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&apos;');
   }
 }

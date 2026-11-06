@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import '../constants/theme.dart';
 import '../models/document_file.dart';
 import '../services/document_service.dart';
@@ -19,6 +20,7 @@ class _DocxViewerScreenState extends State<DocxViewerScreen> {
   String _searchQuery = "";
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
+  bool _hasUnsavedEdits = false;
 
   @override
   void initState() {
@@ -45,6 +47,130 @@ class _DocxViewerScreenState extends State<DocxViewerScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _shareDocument() async {
+    try {
+      await Share.shareXFiles(
+        [XFile(widget.document.path)],
+        text: "Sharing Word document ${widget.document.name} via Social Googol's SG Reader",
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error sharing file: $e")),
+      );
+    }
+  }
+
+  void _editParagraph(int index, String currentText) {
+    final textController = TextEditingController(text: currentText);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: SGTheme.surface,
+        title: Text(
+          "Edit Paragraph ${index + 1}",
+          style: const TextStyle(color: SGTheme.text, fontSize: 16),
+        ),
+        content: TextField(
+          controller: textController,
+          autofocus: true,
+          maxLines: 5,
+          style: const TextStyle(color: SGTheme.text),
+          decoration: InputDecoration(
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            labelText: "Paragraph Content",
+            labelStyle: const TextStyle(color: SGTheme.textSecondary),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: SGTheme.accent),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel", style: TextStyle(color: SGTheme.textMuted)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: SGTheme.accentDeep),
+            onPressed: () async {
+              final newText = textController.text;
+              Navigator.pop(ctx);
+
+              setState(() {
+                _paragraphs[index] = newText;
+                _hasUnsavedEdits = true;
+              });
+
+              await _docService.saveDocxParagraphs(widget.document.path, _paragraphs);
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Paragraph updated and saved to Word document."),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+            },
+            child: const Text("Save", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addParagraph() {
+    final textController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: SGTheme.surface,
+        title: const Text("Add New Paragraph", style: TextStyle(color: SGTheme.text, fontSize: 16)),
+        content: TextField(
+          controller: textController,
+          autofocus: true,
+          maxLines: 4,
+          style: const TextStyle(color: SGTheme.text),
+          decoration: InputDecoration(
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            labelText: "New Paragraph Text",
+            labelStyle: const TextStyle(color: SGTheme.textSecondary),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: SGTheme.accent),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel", style: TextStyle(color: SGTheme.textMuted)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: SGTheme.accentDeep),
+            onPressed: () async {
+              final newText = textController.text.trim();
+              Navigator.pop(ctx);
+              if (newText.isEmpty) return;
+
+              setState(() {
+                _paragraphs.add(newText);
+                _hasUnsavedEdits = true;
+              });
+
+              await _docService.saveDocxParagraphs(widget.document.path, _paragraphs);
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("New paragraph added and saved.")),
+              );
+            },
+            child: const Text("Add & Save", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -93,13 +219,18 @@ class _DocxViewerScreenState extends State<DocxViewerScreen> {
               });
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.share_outlined, color: SGTheme.accent),
+            tooltip: "Share Word Document",
+            onPressed: _shareDocument,
+          ),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: SGTheme.accent))
           : filtered.isEmpty
               ? const Center(
-                  child: Text("No matching text found.", style: TextStyle(color: SGTheme.textSecondary)),
+                  child: Text("No text content found in document.", style: TextStyle(color: SGTheme.textSecondary)),
                 )
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
@@ -124,20 +255,30 @@ class _DocxViewerScreenState extends State<DocxViewerScreen> {
                       );
                     }
 
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 14),
-                      child: Text(
-                        paragraph,
-                        style: const TextStyle(
-                          color: SGTheme.text,
-                          fontSize: 15,
-                          height: 1.55,
-                          letterSpacing: 0.2,
+                    return InkWell(
+                      onTap: () => _editParagraph(index, paragraph),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                        child: Text(
+                          paragraph,
+                          style: const TextStyle(
+                            color: SGTheme.text,
+                            fontSize: 15,
+                            height: 1.55,
+                            letterSpacing: 0.2,
+                          ),
                         ),
                       ),
                     );
                   },
                 ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: SGTheme.accentDeep,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text("Add Paragraph", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        onPressed: _addParagraph,
+      ),
     );
   }
 }

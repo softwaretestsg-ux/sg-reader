@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'package:share_plus/share_plus.dart';
 import '../constants/theme.dart';
 import '../models/document_file.dart';
 
@@ -49,6 +50,19 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
     }
     _searchResult = _pdfViewerController.searchText(query);
     setState(() {});
+  }
+
+  Future<void> _shareDocument() async {
+    try {
+      await Share.shareXFiles(
+        [XFile(widget.document.path)],
+        text: "Sharing ${widget.document.name} via Social Googol's SG Reader",
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error sharing file: $e")),
+      );
+    }
   }
 
   @override
@@ -132,6 +146,11 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
             onPressed: () {
               _pdfViewerController.zoomLevel = (_pdfViewerController.zoomLevel - 0.25).clamp(1.0, 3.0);
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.share_outlined, color: SGTheme.accent),
+            tooltip: "Share PDF",
+            onPressed: _shareDocument,
           ),
         ],
       ),

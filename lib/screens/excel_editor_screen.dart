@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import '../constants/theme.dart';
 import '../models/document_file.dart';
 import '../services/document_service.dart';
@@ -17,6 +18,7 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
   bool _isLoading = true;
   Map<String, List<List<dynamic>>> _sheetsData = {};
   String _currentSheet = '';
+  bool _hasUnsavedEdits = false;
 
   @override
   void initState() {
@@ -38,6 +40,19 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _shareSpreadsheet() async {
+    try {
+      await Share.shareXFiles(
+        [XFile(widget.document.path)],
+        text: "Sharing spreadsheet ${widget.document.name} via Social Googol's SG Reader",
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error sharing file: $e")),
+      );
     }
   }
 
@@ -79,6 +94,7 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
 
               setState(() {
                 _sheetsData[_currentSheet]![rowIndex][colIndex] = newVal;
+                _hasUnsavedEdits = true;
               });
 
               await _docService.saveExcelCell(
@@ -91,15 +107,31 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
 
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text("Cell saved locally."),
+                  content: Text("Cell saved to spreadsheet."),
                   duration: Duration(seconds: 1),
                 ),
               );
             },
-            child: const Text("Save", style: TextStyle(color: Colors.white)),
+            child: const Text("Save Cell", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
+    );
+  }
+
+  void _addNewRow() {
+    final rows = _sheetsData[_currentSheet] ?? [];
+    final colCount = rows.isNotEmpty ? rows.first.length : 3;
+    final newRow = List.generate(colCount, (index) => "");
+
+    setState(() {
+      _sheetsData[_currentSheet]!.add(newRow);
+    });
+
+    _docService.addExcelRow(widget.document.path, _currentSheet, newRow);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("New row added and saved.")),
     );
   }
 
@@ -120,12 +152,17 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
               overflow: TextOverflow.ellipsis,
             ),
             const Text(
-              "Spreadsheet Editor (Tap any cell to edit)",
+              "Spreadsheet Editor (Tap cell to edit)",
               style: TextStyle(fontSize: 11, color: SGTheme.accent),
             ),
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.share_outlined, color: SGTheme.accent),
+            tooltip: "Share Spreadsheet",
+            onPressed: _shareSpreadsheet,
+          ),
           if (_sheetsData.keys.length > 1)
             PopupMenuButton<String>(
               icon: const Icon(Icons.table_chart_outlined, color: SGTheme.text),
@@ -159,45 +196,59 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
               ? const Center(
                   child: Text("Sheet has no readable data.", style: TextStyle(color: SGTheme.textSecondary)),
                 )
-              : SingleChildScrollView(
-                  scrollDirection: Axis.vertical,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: DataTable(
-                      headingRowColor: MaterialStateProperty.all(SGTheme.surfaceHover),
-                      dataRowColor: MaterialStateProperty.resolveWith<Color?>(
-                        (states) => SGTheme.surface.withOpacity(0.6),
-                      ),
-                      columns: List.generate(
-                        rows.first.length,
-                        (index) => DataColumn(
-                          label: Text(
-                            String.fromCharCode(65 + (index % 26)),
-                            style: const TextStyle(color: SGTheme.accent, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-                      rows: List.generate(
-                        rows.length,
-                        (rIndex) => DataRow(
-                          cells: List.generate(
-                            rows[rIndex].length,
-                            (cIndex) {
-                              final cellVal = rows[rIndex][cIndex]?.toString() ?? "";
-                              return DataCell(
-                                Text(
-                                  cellVal,
-                                  style: const TextStyle(color: SGTheme.text),
+              : Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.vertical,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: DataTable(
+                            headingRowColor: MaterialStateProperty.all(SGTheme.surfaceHover),
+                            dataRowColor: MaterialStateProperty.resolveWith<Color?>(
+                              (states) => SGTheme.surface.withOpacity(0.6),
+                            ),
+                            columns: List.generate(
+                              rows.first.length,
+                              (index) => DataColumn(
+                                label: Text(
+                                  String.fromCharCode(65 + (index % 26)),
+                                  style: const TextStyle(color: SGTheme.accent, fontWeight: FontWeight.bold),
                                 ),
-                                onTap: () => _editCell(rIndex, cIndex, cellVal),
-                              );
-                            },
+                              ),
+                            ),
+                            rows: List.generate(
+                              rows.length,
+                              (rIndex) => DataRow(
+                                cells: List.generate(
+                                  rows[rIndex].length,
+                                  (cIndex) {
+                                    final cellVal = rows[rIndex][cIndex]?.toString() ?? "";
+                                    return DataCell(
+                                      Text(
+                                        cellVal.isEmpty ? "—" : cellVal,
+                                        style: TextStyle(
+                                          color: cellVal.isEmpty ? SGTheme.textMuted : SGTheme.text,
+                                        ),
+                                      ),
+                                      onTap: () => _editCell(rIndex, cIndex, cellVal),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: SGTheme.accentDeep,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text("Add Row", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        onPressed: _addNewRow,
+      ),
     );
   }
 }

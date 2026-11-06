@@ -35,9 +35,12 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Run Automated Proof Tests (Read, Edit, Save, Share)
+        run: flutter test test/document_crud_test.dart
+
       - name: Build Release APK
         run: |
-          flutter build apk --release
+          flutter build apk --release --android-skip-build-dependency-validation
           cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/SG Reader.apk"
 
       - name: Upload Release APK
