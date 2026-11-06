@@ -1,0 +1,38 @@
+name: pagify
+description: "Social Googol's Pagify - Secure, Lightweight Document Reader & Editor for Android."
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Device & UI Utilities
+  shared_preferences: ^2.2.2
+  url_launcher: ^6.2.5
+  file_picker: ^8.0.0
+  path_provider: ^2.1.2
+  local_auth: ^2.1.8
+
+  # Document engines (Lightweight & Open Source)
+  pdfx: ^2.6.0
+  excel: ^4.0.3
+  archive: ^3.4.10
+  xml: ^6.5.0
+
+  # Iconography
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
