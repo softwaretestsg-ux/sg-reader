@@ -154,13 +154,67 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 ),
               ),
 
-              const SizedBox(height: 48),
+              const SizedBox(height: 36),
               const SizedBox(
                 width: 22,
                 height: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(SGTheme.accent),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Prominent Version Indicator on Initial Loading Page
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: SGTheme.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: SGTheme.accentBorder),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.verified_outlined, color: SGTheme.accent, size: 14),
+                    SizedBox(width: 6),
+                    Text(
+                      BrandConstants.fullVersionDisplay,
+                      style: TextStyle(
+                        color: SGTheme.accent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Text(
+                "Social Googol • Secure to Grow",
+                style: TextStyle(
+                  color: SGTheme.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: 2),
+              Text(
+                "100% Offline Sandbox • Air-Gapped Privacy",
+                style: TextStyle(
+                  color: SGTheme.textMuted,
+                  fontSize: 10,
                 ),
               ),
             ],

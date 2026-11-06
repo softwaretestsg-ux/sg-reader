@@ -173,7 +173,7 @@ class AboutScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             const Text(
-              "SG Reader • Version: 1.0.0 (Release)\nAir-Gapped Local Architecture • Zero External Telemetry",
+              "SG Reader • Version: ${BrandConstants.fullVersionDisplay}\nAir-Gapped Local Architecture • Zero External Telemetry",
               textAlign: TextAlign.center,
               style: TextStyle(color: SGTheme.textMuted, fontSize: 11, height: 1.5),
             ),

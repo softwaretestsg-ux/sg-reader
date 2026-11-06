@@ -280,11 +280,21 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             const Divider(color: SGTheme.border),
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text(
-                "Support: +91 81262 10003\nWebsite: www.socialgoogol.com\nSecure Offline Architecture",
-                style: TextStyle(color: SGTheme.textMuted, fontSize: 11, height: 1.6),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    "App Version: ${BrandConstants.fullVersionDisplay}",
+                    style: TextStyle(color: SGTheme.accent, fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    "Support: +91 81262 10003\nWebsite: www.socialgoogol.com\n100% Offline Secure Architecture",
+                    style: TextStyle(color: SGTheme.textMuted, fontSize: 11, height: 1.6),
+                  ),
+                ],
               ),
             ),
           ],
