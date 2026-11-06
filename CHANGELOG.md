@@ -4,6 +4,20 @@ All notable changes to the **Social Googol SG Reader** application are documente
 
 ---
 
+## [1.3.1] - 2026-11-06 (Build 15)
+### Added
+- **Recent Documents Management & Clear Capabilities:**
+  - **1-Tap "Clear All" with Confirmation:** Added a prominent `[🗑 Clear All]` button directly on the Recent Documents section header with a safety confirmation dialog. Clears the recents history without deleting files from storage.
+  - **Swipe-to-Dismiss:** Users can swipe any document entry left-to-right or right-to-left to remove it from the recent list with an instant "Undo" toast.
+  - **3-Dots Document Menu:** Each recent document now features an intuitive overflow menu with:
+    - 📄 Open Document
+    - 📤 Share File (WhatsApp / Email)
+    - ❌ Remove from Recents
+    - 🗑️ Delete Permanently (with confirmation)
+  - **Drawer Clear Option:** Added a dedicated "Clear Recent Documents" option in the App Drawer.
+
+---
+
 ## [1.3.0] - 2026-11-06 (Build 14)
 ### Added
 - **In-Built Document Scanner & Auto-Refiner:**

@@ -108,6 +108,30 @@ class DocumentService {
     }
   }
 
+  /// Clears all recent documents history
+  Future<void> clearRecentDocuments() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_recentDocsKey);
+    } catch (e) {
+      debugPrint("Error clearing recent documents: $e");
+    }
+  }
+
+  /// Removes a single recent document entry from history by path
+  Future<void> removeRecentDocument(String filePath) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      List<DocumentFile> recents = await getRecentDocuments();
+      recents.removeWhere((item) => item.path == filePath);
+
+      final rawJsonList = recents.map((item) => jsonEncode(item.toJson())).toList();
+      await prefs.setStringList(_recentDocsKey, rawJsonList);
+    } catch (e) {
+      debugPrint("Error removing recent document: $e");
+    }
+  }
+
   // ==========================================
   // 1. PDF OPERATIONS (READ / SAVE / EDIT / ANNOTATE)
   // ==========================================

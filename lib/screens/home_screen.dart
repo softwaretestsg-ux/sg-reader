@@ -274,6 +274,123 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showClearAllConfirmDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: SGTheme.surface,
+        title: const Text("Clear Recent Documents?", style: TextStyle(color: SGTheme.text, fontWeight: FontWeight.bold)),
+        content: const Text(
+          "This will clear your recent document history in SG Reader. Your original files will remain safely stored on your device.",
+          style: TextStyle(color: SGTheme.textSecondary, fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            child: const Text("Cancel", style: TextStyle(color: SGTheme.textMuted)),
+            onPressed: () => Navigator.pop(ctx),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE5534B),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Clear History"),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _docService.clearRecentDocuments();
+              setState(() {
+                _recentDocs.clear();
+              });
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Recent document history cleared."),
+                  backgroundColor: SGTheme.surface,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _removeSingleRecentDocument(DocumentFile doc) async {
+    await _docService.removeRecentDocument(doc.path);
+    setState(() {
+      _recentDocs.removeWhere((d) => d.path == doc.path);
+    });
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Removed '${doc.name}' from recents."),
+        backgroundColor: SGTheme.surface,
+        duration: const Duration(seconds: 3),
+        action: SnackBarAction(
+          label: "Undo",
+          textColor: SGTheme.accent,
+          onPressed: () async {
+            await _docService.saveRecentDocument(doc);
+            _loadData();
+          },
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteFilePermanently(DocumentFile doc) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: SGTheme.surface,
+        title: const Text("Delete File Permanently?", style: TextStyle(color: Color(0xFFE5534B), fontWeight: FontWeight.bold)),
+        content: Text(
+          "Are you sure you want to permanently delete '${doc.name}' from your device storage? This cannot be undone.",
+          style: const TextStyle(color: SGTheme.textSecondary, fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            child: const Text("Cancel", style: TextStyle(color: SGTheme.textMuted)),
+            onPressed: () => Navigator.pop(ctx),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE5534B),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Delete Permanently"),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                final file = File(doc.path);
+                if (await file.exists()) {
+                  await file.delete();
+                }
+                await _docService.removeRecentDocument(doc.path);
+                setState(() {
+                  _recentDocs.removeWhere((d) => d.path == doc.path);
+                });
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("Permanently deleted '${doc.name}'."),
+                    backgroundColor: const Color(0xFFE5534B),
+                  ),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Error deleting file: $e")),
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _pickAndOpenFile() async {
     try {
       final doc = await _docService.pickDocument();
@@ -418,6 +535,15 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_sweep_outlined, color: Color(0xFFE5534B)),
+              title: const Text("Clear Recent Documents", style: TextStyle(color: SGTheme.text)),
+              subtitle: const Text("Remove all files from recents history", style: TextStyle(color: SGTheme.textSecondary, fontSize: 11)),
+              onTap: () {
+                Navigator.pop(context);
+                _showClearAllConfirmDialog();
               },
             ),
             SwitchListTile(
@@ -612,10 +738,37 @@ class _HomeScreenState extends State<HomeScreen> {
                       letterSpacing: 0.2,
                     ),
                   ),
-                  Text(
-                    "${filtered.length} files",
-                    style: const TextStyle(color: SGTheme.textMuted, fontSize: 12),
-                  ),
+                  if (filtered.isNotEmpty)
+                    Row(
+                      children: [
+                        InkWell(
+                          onTap: _showClearAllConfirmDialog,
+                          borderRadius: BorderRadius.circular(6),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            child: Row(
+                              children: const [
+                                Icon(Icons.delete_sweep_outlined, size: 16, color: SGTheme.accent),
+                                SizedBox(width: 4),
+                                Text(
+                                  "Clear All",
+                                  style: TextStyle(
+                                    color: SGTheme.accent,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          "(${filtered.length})",
+                          style: const TextStyle(color: SGTheme.textMuted, fontSize: 12),
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -637,7 +790,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(height: 6),
                               const Text(
-                                "Tap 'Open Document' to browse PDF, Excel, Word or PPT files",
+                                "Tap 'Open Document' or 'Scan Doc' to get started",
                                 style: TextStyle(color: SGTheme.textMuted, fontSize: 12),
                               ),
                             ],
@@ -649,40 +802,122 @@ class _HomeScreenState extends State<HomeScreen> {
                           separatorBuilder: (_, __) => const SizedBox(height: 10),
                           itemBuilder: (ctx, index) {
                             final doc = filtered[index];
-                            return ListTile(
-                              tileColor: SGTheme.surface,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: const BorderSide(color: SGTheme.border),
-                              ),
-                              leading: Container(
-                                padding: const EdgeInsets.all(8),
+                            return Dismissible(
+                              key: Key(doc.path),
+                              direction: DismissDirection.endToStart,
+                              background: Container(
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 20),
                                 decoration: BoxDecoration(
-                                  color: _colorForType(doc.type).withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(8),
+                                  color: const Color(0xFFE5534B).withOpacity(0.85),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: Icon(
-                                  _iconForType(doc.type),
-                                  color: _colorForType(doc.type),
-                                  size: 22,
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    Icon(Icons.delete_outline, color: Colors.white, size: 22),
+                                    SizedBox(width: 6),
+                                    Text("Remove", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                                  ],
                                 ),
                               ),
-                              title: Text(
-                                doc.name,
-                                style: const TextStyle(
-                                  color: SGTheme.text,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
+                              onDismissed: (_) => _removeSingleRecentDocument(doc),
+                              child: ListTile(
+                                tileColor: SGTheme.surface,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: const BorderSide(color: SGTheme.border),
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                leading: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: _colorForType(doc.type).withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    _iconForType(doc.type),
+                                    color: _colorForType(doc.type),
+                                    size: 22,
+                                  ),
+                                ),
+                                title: Text(
+                                  doc.name,
+                                  style: const TextStyle(
+                                    color: SGTheme.text,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                subtitle: Text(
+                                  "${doc.formattedSize} • ${doc.type.name.toUpperCase()}",
+                                  style: const TextStyle(color: SGTheme.textMuted, fontSize: 11),
+                                ),
+                                trailing: PopupMenuButton<String>(
+                                  icon: const Icon(Icons.more_vert, color: SGTheme.textMuted, size: 20),
+                                  color: SGTheme.surface,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    side: const BorderSide(color: SGTheme.border),
+                                  ),
+                                  onSelected: (val) {
+                                    if (val == 'open') {
+                                      _openDocument(doc);
+                                    } else if (val == 'share') {
+                                      Share.shareXFiles([XFile(doc.path)], text: "Sharing ${doc.name} via Social Googol's SG Reader");
+                                    } else if (val == 'remove') {
+                                      _removeSingleRecentDocument(doc);
+                                    } else if (val == 'delete') {
+                                      _confirmDeleteFilePermanently(doc);
+                                    }
+                                  },
+                                  itemBuilder: (context) => [
+                                    const PopupMenuItem(
+                                      value: 'open',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.open_in_new, color: SGTheme.accent, size: 18),
+                                          SizedBox(width: 10),
+                                          Text("Open Document", style: TextStyle(color: SGTheme.text, fontSize: 13)),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'share',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.share_outlined, color: Color(0xFF4B8FE5), size: 18),
+                                          SizedBox(width: 10),
+                                          Text("Share File", style: TextStyle(color: SGTheme.text, fontSize: 13)),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'remove',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.close, color: SGTheme.textSecondary, size: 18),
+                                          SizedBox(width: 10),
+                                          Text("Remove from Recents", style: TextStyle(color: SGTheme.text, fontSize: 13)),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuDivider(),
+                                    const PopupMenuItem(
+                                      value: 'delete',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.delete_outline, color: Color(0xFFE5534B), size: 18),
+                                          SizedBox(width: 10),
+                                          Text("Delete Permanently", style: TextStyle(color: Color(0xFFE5534B), fontSize: 13)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                onTap: () => _openDocument(doc),
                               ),
-                              subtitle: Text(
-                                "${doc.formattedSize} • ${doc.type.name.toUpperCase()}",
-                                style: const TextStyle(color: SGTheme.textMuted, fontSize: 11),
-                              ),
-                              trailing: const Icon(Icons.arrow_forward_ios, color: SGTheme.borderStrong, size: 13),
-                              onTap: () => _openDocument(doc),
                             );
                           },
                         ),

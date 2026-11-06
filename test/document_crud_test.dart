@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:archive/archive.dart';
 import 'package:excel/excel.dart' as xls;
 import 'package:image/image.dart' as img;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:sg_reader/services/document_service.dart';
 import 'package:sg_reader/services/scanner_service.dart';
@@ -245,6 +246,48 @@ void main() {
       expect(zipArchive.findFile('page_1.jpg') != null, true);
       expect(zipArchive.findFile('page_2.jpg') != null, true);
       expect(zipArchive.findFile('manifest.txt') != null, true);
+    });
+
+    // -------------------------------------------------------------
+    // 7. RECENT DOCUMENTS CLEAR & REMOVE TESTS
+    // -------------------------------------------------------------
+    test('Recent Documents: Save -> Remove Individual -> Clear All -> Verify Proof', () async {
+      SharedPreferences.setMockInitialValues({});
+      final mockDoc1 = DocumentFile(
+        path: '${tempDir.path}/doc1.pdf',
+        name: 'doc1.pdf',
+        sizeInBytes: 1024,
+        type: DocumentType.pdf,
+        lastOpened: DateTime.now(),
+      );
+      final mockDoc2 = DocumentFile(
+        path: '${tempDir.path}/doc2.docx',
+        name: 'doc2.docx',
+        sizeInBytes: 2048,
+        type: DocumentType.word,
+        lastOpened: DateTime.now(),
+      );
+
+      // Create files so getRecentDocuments verifies existence
+      await File(mockDoc1.path).writeAsString("mock1");
+      await File(mockDoc2.path).writeAsString("mock2");
+
+      // 1. Save both
+      await docService.saveRecentDocument(mockDoc1);
+      await docService.saveRecentDocument(mockDoc2);
+      var recents = await docService.getRecentDocuments();
+      expect(recents.length, 2);
+
+      // 2. Remove single entry
+      await docService.removeRecentDocument(mockDoc1.path);
+      recents = await docService.getRecentDocuments();
+      expect(recents.length, 1);
+      expect(recents.first.path, mockDoc2.path);
+
+      // 3. Clear all
+      await docService.clearRecentDocuments();
+      recents = await docService.getRecentDocuments();
+      expect(recents.isEmpty, true);
     });
   });
 }
