@@ -22,13 +22,12 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Ensure Official Social Googol Release Keystore Exists
+      - name: Restore Official Social Googol Release Keystore
         run: |
-          if [ ! -f android/app/socialgoogol_release.jks ]; then
-            keytool -genkey -v -keystore android/app/socialgoogol_release.jks \
-              -alias socialgoogol -keyalg RSA -keysize 2048 -validity 10000 \
-              -storepass "SocialGoogol2026" -keypass "SocialGoogol2026" \
-              -dname "CN=Social Googol, OU=Mobile, O=Social Googol, L=Noida, ST=UP, C=IN"
+          mkdir -p android/app
+          if [ -f android/app/keystore.base64 ]; then
+            base64 -d android/app/keystore.base64 > android/app/socialgoogol_release.jks
+            echo "Keystore restored successfully."
           fi
 
       - name: Set up Flutter (Latest Stable)
@@ -43,6 +42,8 @@ jobs:
       - name: Generate Android Platform Files
         run: |
           flutter create . --org com.socialgoogol --project-name sg_reader --platforms android
+          # Apply official Social Googol launcher branding
+          cp -r assets/branding/res/mipmap-* android/app/src/main/res/
 
       - name: Install Dependencies
         run: flutter pub get
