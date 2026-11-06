@@ -13,6 +13,8 @@ import 'excel_editor_screen.dart';
 import 'docx_viewer_screen.dart';
 import 'pptx_viewer_screen.dart';
 import 'about_screen.dart';
+import 'scanner_screen.dart';
+import '../services/scanner_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -194,6 +196,84 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _launchDocumentScanner() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: SGTheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Document Scanner",
+              style: TextStyle(color: SGTheme.text, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              "Automatically enhance & save to PDF, Word (DOCX), or Images",
+              style: TextStyle(color: SGTheme.textSecondary, fontSize: 12),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              tileColor: SGTheme.bgDark,
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: SGTheme.accent.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.camera_alt_outlined, color: SGTheme.accent),
+              ),
+              title: const Text("Scan with Camera", style: TextStyle(color: SGTheme.text, fontWeight: FontWeight.w600)),
+              subtitle: const Text("Take a document photo with live framing", style: TextStyle(color: SGTheme.textSecondary, fontSize: 11)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final page = await ScannerService().capturePageFromCamera();
+                if (page != null && mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => ScannerScreen(initialPage: page)),
+                  ).then((_) => _loadData());
+                }
+              },
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              tileColor: SGTheme.bgDark,
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4A7EBB).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.photo_library_outlined, color: Color(0xFF4A7EBB)),
+              ),
+              title: const Text("Import from Gallery", style: TextStyle(color: SGTheme.text, fontWeight: FontWeight.w600)),
+              subtitle: const Text("Select existing document photo to enhance", style: TextStyle(color: SGTheme.textSecondary, fontSize: 11)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final page = await ScannerService().pickPageFromGallery();
+                if (page != null && mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => ScannerScreen(initialPage: page)),
+                  ).then((_) => _loadData());
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _pickAndOpenFile() async {
     try {
       final doc = await _docService.pickDocument();
@@ -322,6 +402,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.document_scanner_outlined, color: SGTheme.accent),
+              title: const Text("Scan Document", style: TextStyle(color: SGTheme.text, fontWeight: FontWeight.bold)),
+              subtitle: const Text("Camera scan with offline auto-refine", style: TextStyle(color: SGTheme.textSecondary, fontSize: 11)),
+              onTap: () {
+                Navigator.pop(context);
+                _launchDocumentScanner();
+              },
             ),
             ListTile(
               leading: const Icon(Icons.info_outline, color: SGTheme.textSecondary),
@@ -601,14 +690,34 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: SGTheme.accentDeep,
-        icon: const Icon(Icons.file_open_outlined, color: Colors.white),
-        label: const Text(
-          "Open Document",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FloatingActionButton.extended(
+              heroTag: "scan_btn",
+              backgroundColor: SGTheme.accent,
+              icon: const Icon(Icons.document_scanner_outlined, color: Colors.white, size: 20),
+              label: const Text(
+                "Scan Doc",
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              onPressed: _launchDocumentScanner,
+            ),
+            const SizedBox(width: 10),
+            FloatingActionButton.extended(
+              heroTag: "open_btn",
+              backgroundColor: SGTheme.surface,
+              icon: const Icon(Icons.file_open_outlined, color: SGTheme.accent, size: 20),
+              label: const Text(
+                "Open File",
+                style: TextStyle(color: SGTheme.text, fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              onPressed: _pickAndOpenFile,
+            ),
+          ],
         ),
-        onPressed: _pickAndOpenFile,
       ),
     );
   }

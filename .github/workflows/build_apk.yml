@@ -68,19 +68,23 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main')
         with:
-          tag_name: v1.1.0
-          name: "Social Googol SG Reader (Official Release v1.1.0)"
+          tag_name: v1.3.0
+          name: "Social Googol SG Reader (Official Release v1.3.0)"
           body: |
-            ### 🛡️ Social Googol's SG Reader - Official Android APK (v1.1.0)
+            ### 🛡️ Social Googol's SG Reader - Official Android APK (v1.3.0)
             **Tagline:** Secure to Grow - सुरक्षा से ग्रोथ तक
             **Website:** https://www.socialgoogol.com
             **Helpline:** +91 81262 10003
 
             ---
             ### 🔄 Version & Release Tracking:
-            - **Release Version:** v1.1.0 (Build ${{ github.run_number }})
+            - **Release Version:** v1.3.0 (Build ${{ github.run_number }})
+            - **New Feature: In-built Document Scanner & AI Auto-Refiner:**
+              - Multi-page camera capture & gallery import
+              - Offline document enhancement: Magic Auto-Refine, Crisp B&W, Grayscale, Color Boost, Rotate
+              - Multi-format export: Save as **PDF Document (.pdf)**, **Word Document (.docx)**, **Enhanced Images (.jpg)**, or **ZIP Package (.zip)**
             - **In-Place Updates:** Build number is auto-incremented on each build. All new builds will update seamlessly over previous builds without needing to uninstall.
-            - **Initial Screen Version:** Displays `v1.1.0 • Build ${{ github.run_number }}` on the loading splash screen.
+            - **Initial Screen Version:** Displays `v1.3.0 • Build ${{ github.run_number }}` on the loading splash screen.
 
             ### 📲 Direct 1-Click APK Download:
             Download the official signed release directly to your Android device below:

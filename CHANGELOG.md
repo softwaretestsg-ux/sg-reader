@@ -4,6 +4,28 @@ All notable changes to the **Social Googol SG Reader** application are documente
 
 ---
 
+## [1.3.0] - 2026-11-06 (Build 14)
+### Added
+- **In-Built Document Scanner & Auto-Refiner:**
+  - Multi-page document camera capture and gallery photo import.
+  - 100% offline background image enhancement algorithms:
+    - 🪄 **Magic Auto-Refine:** Automatically neutralizes shadows, balances brightness, and sharpens text contours for professional document clarity.
+    - 📄 **Crisp B&W:** High-contrast document binarization for clean printouts and pure white paper backgrounds.
+    - 🔘 **Grayscale:** Smooth 8-bit document scanning.
+    - 🎨 **Enhanced Color:** Intensifies colors for official stamps, signatures, colored letterheads, and certificates.
+    - 🔄 **90° Rotation:** Rotate pages in any direction with instant preview.
+- **Universal Multi-Format Export Engine:**
+  - On completing a scan, users can save and export their documents into any desired format:
+    - 📕 **PDF Document (.pdf):** Standard multi-page document layout, edge-to-edge scaling.
+    - 📘 **Word Document (.docx):** Valid OpenXML document with embedded full-page scans, immediately editable in SG Reader and Microsoft Word.
+    - 🖼️ **High-Resolution Images (.jpg):** Clean enhanced image files saved to device storage.
+    - 🗂️ **Compressed ZIP Package (.zip):** Archive containing all scanned pages and text manifest.
+- **Immediate In-App Integration:**
+  - Automatically indexes newly scanned documents into the "Recent Documents" dashboard with 1-tap options to "Open in SG Reader" or "Share via WhatsApp / Email".
+  - Added dual quick-action buttons on the Home dashboard: `[ 📸 Scan Doc ]` and `[ 📁 Open File ]`.
+
+---
+
 ## [1.2.0] - 2026-11-06 (Build 13)
 ### Fixed
 - **Full Document Page Flow & Layout:** Resolved the critical Blink flexbox height collapse issue that truncated Word document pages halfway down the screen. Changed document container from a constrained flex item to a full, continuous paper canvas (`display: block; height: auto !important`) on a neutral desktop (`#ECE8E1`). All pages, paragraphs, and multi-column tables are now 100% visible with crisp, high-contrast `#1A1A1A` text.

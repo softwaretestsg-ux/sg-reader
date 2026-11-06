@@ -1,10 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:archive/archive.dart';
 import 'package:excel/excel.dart' as xls;
+import 'package:image/image.dart' as img;
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:sg_reader/services/document_service.dart';
+import 'package:sg_reader/services/scanner_service.dart';
+import 'package:sg_reader/services/scanner_export_service.dart';
+import 'package:sg_reader/models/document_file.dart';
 
 void main() {
   late Directory tempDir;
@@ -166,6 +171,77 @@ void main() {
       // 2. Verify file is ready for sharing
       expect(pdfFile.path.endsWith('.pdf'), true);
       expect(await pdfFile.length() > 0, true);
+    });
+
+    // -------------------------------------------------------------
+    // 6. IN-BUILT DOCUMENT SCANNER & MULTI-FORMAT EXPORT TEST
+    // -------------------------------------------------------------
+    test('Scanner & Multi-Format Export: Process -> Export to PDF & DOCX -> Verify Proof', () async {
+      // Create a mock scanned image in memory
+      final testImg = img.Image(width: 200, height: 300);
+      img.fill(testImg, color: img.ColorRgb8(255, 255, 255));
+      img.drawString(testImg, 'Social Googol Verified Scan', font: img.arial14, x: 20, y: 50, color: img.ColorRgb8(0, 0, 0));
+      final imgBytes = Uint8List.fromList(img.encodeJpg(testImg));
+
+      final scannedPages = [
+        ScannedPage(
+          id: 'page_1',
+          originalBytes: imgBytes,
+          processedBytes: imgBytes,
+          currentFilter: ScanFilterType.autoRefine,
+        ),
+        ScannedPage(
+          id: 'page_2',
+          originalBytes: imgBytes,
+          processedBytes: imgBytes,
+          currentFilter: ScanFilterType.crispBw,
+        ),
+      ];
+
+      // 1. Export as PDF
+      final pdfResult = await ScannerExportService.exportDocument(
+        pages: scannedPages,
+        baseFileName: 'test_scan_export',
+        format: ExportFormat.pdf,
+      );
+      expect(File(pdfResult.filePath).existsSync(), true);
+      expect(pdfResult.docType, DocumentType.pdf);
+      expect(pdfResult.fileSizeBytes > 0, true);
+
+      // Verify PDF has 2 pages
+      final pdfBytes = await File(pdfResult.filePath).readAsBytes();
+      final loadedPdf = PdfDocument(inputBytes: pdfBytes);
+      expect(loadedPdf.pages.count, 2);
+      loadedPdf.dispose();
+
+      // 2. Export as Word (.docx)
+      final docxResult = await ScannerExportService.exportDocument(
+        pages: scannedPages,
+        baseFileName: 'test_scan_export',
+        format: ExportFormat.docx,
+      );
+      expect(File(docxResult.filePath).existsSync(), true);
+      expect(docxResult.docType, DocumentType.word);
+      expect(docxResult.fileSizeBytes > 0, true);
+
+      // Verify DOCX archive contains document.xml and both images
+      final docxBytes = await File(docxResult.filePath).readAsBytes();
+      final archive = ZipDecoder().decodeBytes(docxBytes);
+      expect(archive.findFile('word/document.xml') != null, true);
+      expect(archive.findFile('word/media/image1.jpg') != null, true);
+      expect(archive.findFile('word/media/image2.jpg') != null, true);
+
+      // 3. Export as ZIP
+      final zipResult = await ScannerExportService.exportDocument(
+        pages: scannedPages,
+        baseFileName: 'test_scan_export',
+        format: ExportFormat.zip,
+      );
+      expect(File(zipResult.filePath).existsSync(), true);
+      final zipArchive = ZipDecoder().decodeBytes(await File(zipResult.filePath).readAsBytes());
+      expect(zipArchive.findFile('page_1.jpg') != null, true);
+      expect(zipArchive.findFile('page_2.jpg') != null, true);
+      expect(zipArchive.findFile('manifest.txt') != null, true);
     });
   });
 }
