@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui';
 import 'package:archive/archive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
@@ -34,10 +35,20 @@ class ScannerExportService {
     required List<ScannedPage> pages,
     required String baseFileName,
     required ExportFormat format,
+    Directory? customOutputDir,
   }) async {
     final sanitizedName = baseFileName.trim().replaceAll(RegExp(r'[^\w\s\-]'), '_');
-    final appDir = await getApplicationDocumentsDirectory();
-    final docsDir = Directory('${appDir.path}/scanned_documents');
+    Directory docsDir;
+    if (customOutputDir != null) {
+      docsDir = customOutputDir;
+    } else {
+      try {
+        final appDir = await getApplicationDocumentsDirectory();
+        docsDir = Directory('${appDir.path}/scanned_documents');
+      } catch (_) {
+        docsDir = Directory.systemTemp.createTempSync('sg_scans_');
+      }
+    }
     if (!await docsDir.exists()) {
       await docsDir.create(recursive: true);
     }

@@ -203,6 +203,7 @@ void main() {
         pages: scannedPages,
         baseFileName: 'test_scan_export',
         format: ExportFormat.pdf,
+        customOutputDir: tempDir,
       );
       expect(File(pdfResult.filePath).existsSync(), true);
       expect(pdfResult.docType, DocumentType.pdf);
@@ -219,6 +220,7 @@ void main() {
         pages: scannedPages,
         baseFileName: 'test_scan_export',
         format: ExportFormat.docx,
+        customOutputDir: tempDir,
       );
       expect(File(docxResult.filePath).existsSync(), true);
       expect(docxResult.docType, DocumentType.word);
@@ -236,6 +238,7 @@ void main() {
         pages: scannedPages,
         baseFileName: 'test_scan_export',
         format: ExportFormat.zip,
+        customOutputDir: tempDir,
       );
       expect(File(zipResult.filePath).existsSync(), true);
       final zipArchive = ZipDecoder().decodeBytes(await File(zipResult.filePath).readAsBytes());
