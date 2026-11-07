@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import '../constants/branding.dart';
 import '../constants/theme.dart';
 import '../models/document_file.dart';
