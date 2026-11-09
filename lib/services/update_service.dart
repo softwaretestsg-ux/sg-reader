@@ -19,7 +19,7 @@ class UpdateInfo {
 }
 
 class UpdateService {
-  static const int currentVersionCode = 1;
+  static int get currentVersionCode => BrandConstants.buildNumber;
   static const String versionCheckUrl = "https://www.socialgoogol.com/app/version.json";
 
   /// Checks Social Googol server for newer APK version

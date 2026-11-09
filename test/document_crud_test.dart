@@ -10,6 +10,9 @@ import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:sg_reader/services/document_service.dart';
 import 'package:sg_reader/services/scanner_service.dart';
 import 'package:sg_reader/services/scanner_export_service.dart';
+import 'package:sg_reader/services/update_service.dart';
+import 'package:sg_reader/services/security_service.dart';
+import 'package:sg_reader/constants/branding.dart';
 import 'package:sg_reader/models/document_file.dart';
 
 void main() {
@@ -288,6 +291,38 @@ void main() {
       await docService.clearRecentDocuments();
       recents = await docService.getRecentDocuments();
       expect(recents.isEmpty, true);
+    });
+
+    // -------------------------------------------------------------
+    // 8. BRANDING, UPDATE SERVICE & SECURITY VERIFICATION TESTS
+    // -------------------------------------------------------------
+    test('UpdateService: Version code dynamically synchronizes with BrandConstants', () {
+      expect(UpdateService.currentVersionCode, BrandConstants.buildNumber);
+      expect(UpdateService.currentVersionCode, 16);
+      expect(BrandConstants.appVersion, "1.3.1");
+      expect(BrandConstants.fullVersionDisplay, "v1.3.1 • Build 16");
+    });
+
+    test('BrandConstants: Bilingual tagline and identity integrity', () {
+      expect(BrandConstants.appName, "Social Googol's SG Reader");
+      expect(BrandConstants.taglineEn, "Secure to Grow");
+      expect(BrandConstants.taglineHi, "सुरक्षा से ग्रोथ तक");
+      expect(BrandConstants.fullTagline, "Secure to Grow - सुरक्षा से ग्रोथ तक");
+      expect(BrandConstants.contactPhone, "8126210003");
+      expect(BrandConstants.contactPhoneFormatted, "+91 81262 10003");
+    });
+
+    test('SecurityService: EULA and App Lock state persistence', () async {
+      SharedPreferences.setMockInitialValues({});
+      final security = SecurityService();
+
+      expect(await security.isEulaAccepted(), false);
+      await security.setEulaAccepted(true);
+      expect(await security.isEulaAccepted(), true);
+
+      expect(await security.isAppLockEnabled(), false);
+      await security.setAppLockEnabled(true);
+      expect(await security.isAppLockEnabled(), true);
     });
   });
 }

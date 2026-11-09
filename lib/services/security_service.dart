@@ -40,8 +40,8 @@ class SecurityService {
         ),
       );
     } catch (e) {
-      // In case of hardware auth exception, allow fallback or return true
-      return true;
+      // In case of hardware auth exception, fail securely
+      return false;
     }
   }
 }

@@ -15,7 +15,7 @@ class BrandConstants {
   // Tagline (Bilingual)
   static const String taglineEn = "Secure to Grow";
   static const String taglineHi = "सुरक्षा से ग्रोथ तक";
-  static const String taglineHindi = "सुरक्षा से ग्रोथ तक";
+  static const String taglineHindi = taglineHi; // Backward compatibility alias
   static const String fullTagline = "Secure to Grow - सुरक्षा से ग्रोथ तक";
 
   // App Mission
