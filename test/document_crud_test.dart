@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' show Rect, Offset;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:archive/archive.dart';
 import 'package:excel/excel.dart' as xls;
