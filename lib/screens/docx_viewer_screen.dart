@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../constants/theme.dart';
 import '../models/document_file.dart';
+import '../services/watermark_service.dart';
 
 class DocxViewerScreen extends StatefulWidget {
   final DocumentFile document;
@@ -120,6 +121,26 @@ class _DocxViewerScreenState extends State<DocxViewerScreen> {
     _controller.runJavaScript("window.saveDocument();");
   }
 
+  Future<void> _cleanDocxWatermark() async {
+    final watermarkService = WatermarkService();
+    final success = await watermarkService.removeDocxWatermark(widget.document.path);
+    if (!mounted) return;
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("✨ All watermark shapes removed from Word document! Reloading..."),
+          backgroundColor: Color(0xFF4F7A4A),
+          duration: Duration(seconds: 3),
+        ),
+      );
+      _sendDocumentToWebView();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No OpenXML watermarks detected or document already clean.")),
+      );
+    }
+  }
+
   Future<void> _shareDocument() async {
     try {
       await Share.shareXFiles(
@@ -154,6 +175,11 @@ class _DocxViewerScreenState extends State<DocxViewerScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.cleaning_services_outlined, color: SGTheme.accent),
+            tooltip: "Remove Watermark from Word Document",
+            onPressed: _cleanDocxWatermark,
+          ),
           IconButton(
             icon: const Icon(Icons.save_outlined, color: SGTheme.accent),
             tooltip: "Save Word Document",

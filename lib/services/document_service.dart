@@ -197,6 +197,30 @@ class DocumentService {
     await file.writeAsBytes(updatedBytes, flush: true);
   }
 
+  /// Covers an unwanted watermark, footer stamp, or header on a PDF page with clean white paper
+  Future<void> redactPdfWatermarkArea(
+    String filePath, {
+    required int pageIndex,
+    required Rect bounds,
+  }) async {
+    final file = File(filePath);
+    final bytes = await file.readAsBytes();
+    final document = PdfDocument(inputBytes: bytes);
+
+    if (pageIndex >= 0 && pageIndex < document.pages.count) {
+      final page = document.pages[pageIndex];
+      // Draw clean paper whiteout rectangle to cover watermark
+      page.graphics.drawRectangle(
+        brush: PdfSolidBrush(PdfColor(255, 255, 255)),
+        bounds: bounds,
+      );
+    }
+
+    final updatedBytes = document.saveSync();
+    document.dispose();
+    await file.writeAsBytes(updatedBytes, flush: true);
+  }
+
   // ==========================================
   // 2. EXCEL OPERATIONS (READ / EDIT / SAVE)
   // ==========================================

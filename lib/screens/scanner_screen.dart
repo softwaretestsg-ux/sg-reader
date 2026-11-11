@@ -8,6 +8,8 @@ import '../models/document_file.dart';
 import '../services/document_service.dart';
 import '../services/scanner_export_service.dart';
 import '../services/scanner_service.dart';
+import '../widgets/perspective_cropper.dart';
+import '../widgets/watermark_eraser_dialog.dart';
 import 'docx_viewer_screen.dart';
 import 'pdf_viewer_screen.dart';
 
@@ -79,6 +81,57 @@ class _ScannerScreenState extends State<ScannerScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isProcessingFilter = false);
+    }
+  }
+
+  Future<void> _openCropper() async {
+    final result = await Navigator.push<Uint8List>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PerspectiveCropperScreen(
+          imageBytes: _currentPage.originalBytes,
+          initialCorners: _currentPage.corners,
+        ),
+      ),
+    );
+
+    if (result != null && mounted) {
+      setState(() => _isProcessingFilter = true);
+      final processed = await _scannerService.processPage(
+        result,
+        _currentPage.currentFilter,
+        _currentPage.rotationAngle,
+      );
+      if (!mounted) return;
+      setState(() {
+        _pages[_currentPageIndex] = ScannedPage(
+          id: _currentPage.id,
+          originalBytes: result,
+          processedBytes: processed,
+          currentFilter: _currentPage.currentFilter,
+          rotationAngle: _currentPage.rotationAngle,
+        );
+        _isProcessingFilter = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("✨ Document dewarped and straightened successfully!")),
+      );
+    }
+  }
+
+  Future<void> _openWatermarkCleaner() async {
+    final cleaned = await showDialog<Uint8List>(
+      context: context,
+      builder: (_) => WatermarkEraserDialog(imageBytes: _currentPage.processedBytes),
+    );
+
+    if (cleaned != null && mounted) {
+      setState(() {
+        _currentPage.processedBytes = cleaned;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("✨ Watermark removed from current page!")),
+      );
     }
   }
 
@@ -472,6 +525,16 @@ class _ScannerScreenState extends State<ScannerScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.crop_outlined, color: SGTheme.accent),
+            tooltip: "Adjust 4 Corners & Dewarp",
+            onPressed: _openCropper,
+          ),
+          IconButton(
+            icon: const Icon(Icons.cleaning_services_outlined, color: SGTheme.accent),
+            tooltip: "Remove Watermarks & Stamps",
+            onPressed: _openWatermarkCleaner,
+          ),
           IconButton(
             icon: const Icon(Icons.rotate_right_outlined, color: SGTheme.accent),
             tooltip: "Rotate 90°",

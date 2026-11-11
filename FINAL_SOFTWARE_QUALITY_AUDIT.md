@@ -39,12 +39,13 @@ All audited application defects have been resolved:
 | **SC-06** | **Excel Editor & Viewer** (`excel_editor_screen.dart`) | `webview_flutter` + `xspreadsheet` + SheetJS | Cell grid, Touch formula bar, Add Row/Col, Del Row/Col, Clear Cell, Save to `.xlsx`/`.csv`, Share | **PASS (Verified)** |
 | **SC-07** | **Word Processor** (`docx_viewer_screen.dart`) | `webview_flutter` + `mammoth.js` + `html-docx.js` | Multi-page continuous paper desk, Rich text toolbar (B/I/U/H1/H2/Lists), Quick action buttons, Save to `.docx`, Share | **PASS (Verified)** |
 | **SC-08** | **PowerPoint Viewer** (`pptx_viewer_screen.dart`) | Pure Dart OpenXML (`archive` + `xml`) | Slide-by-slide card deck (`PageView`), Slide indicator dots, In-place text line edit modal, Save, Share | **PASS (Verified)** |
-| **SC-09** | **Document Scanner** (`scanner_screen.dart`) | Pure Dart `image` + Custom UI | Multi-page capture viewport, Page switcher, 4 AI Filter Chips, 90° Rotate, Multi-format Export modal | **PASS (Verified)** |
+| **SC-09** | **Document Scanner** (`scanner_screen.dart`) | Pure Dart `image` + Custom UI | Multi-page capture, 4-Point Perspective Dewarping (`perspective_cropper.dart`), Watermark Eraser (`watermark_eraser_dialog.dart`), Background Division, Sauvola Binarization, Export | **PASS (Verified)** |
 | **SC-10** | **About Social Googol** (`about_screen.dart`) | Flutter / URL Launcher | Official branding card, Phone call trigger, WhatsApp chat trigger, Web browser trigger, Feature list | **PASS (Verified)** |
-| **SV-01** | **Document Service** (`document_service.dart`) | Pure Dart I/O & OpenXML | Multi-format picking, Recent docs CRUD, Recents persistence, PDF byte annotation, Word/Excel/PPT parser | **PASS (Verified)** |
+| **SV-01** | **Document Service** (`document_service.dart`) | Pure Dart I/O & OpenXML | Multi-format picking, Recent docs CRUD, Recents persistence, PDF byte annotation, PDF Whiteout Redaction, Word/Excel/PPT parser | **PASS (Verified)** |
 | **SV-02** | **Scanner Export Service** (`scanner_export_service.dart`) | Pure Dart / Syncfusion PDF / Archive | Edge-to-edge PDF packaging, OpenXML DOCX with embedded scans, JPEG gallery saver, ZIP bundle with manifest | **PASS (Verified)** |
 | **SV-03** | **Security & Biometrics** (`security_service.dart`) | `local_auth` / `shared_preferences` | Hardware fingerprint/PIN check, EULA state persistence, App lock flag persistence | **PASS (Verified)** |
-| **SV-04** | **Update Service** (`update_service.dart`) | `HttpClient` / JSON parser | Server version check, Update dialog prompt, Direct APK download launch | **CONDITIONAL (Bug Identified)** |
+| **SV-04** | **Update Service** (`update_service.dart`) | `HttpClient` / JSON parser | Server version check, Update dialog prompt, Direct APK download launch | **PASS (Verified)** |
+| **SV-05** | **Watermark Service** (`watermark_service.dart`) | Pure Dart Image & OpenXML | Color-keyed watermark stripper (faint gray, red/blue stamps), region inpainting eraser, Word DOCX OpenXML watermark shape stripper | **PASS (Verified)** |
 | **NT-01** | **Android Native Intent Bridge** (`MainActivity.kt`) | Kotlin / MethodChannel / Intent Filters | `ACTION_VIEW` & `ACTION_SEND` capture from WhatsApp/Files, MIME type inference, ContentResolver streaming | **PASS (Verified)** |
 
 ---
@@ -160,6 +161,11 @@ All audited application defects have been resolved:
 | `test/document_crud_test.dart` (Suite 5) | PDF Byte Integrity & Share Readiness | **PASS** | Full byte validation & MIME compliance |
 | `test/document_crud_test.dart` (Suite 6) | Document Scanner Multi-Format Export | **PASS** | Successfully exported to PDF, DOCX, and ZIP |
 | `test/document_crud_test.dart` (Suite 7) | Recent Documents CRUD & Clear All | **PASS** | SharedPreferences mock verified: remove & clear |
+| `test/document_crud_test.dart` (Suite 8) | Version Code, Branding & Security | **PASS** | Dynamic build sync, bilingual branding, fail-closed auth |
+| `test/document_crud_test.dart` (Suite 9) | 4-Point Perspective Crop & Adaptive Filters | **PASS** | Homography dewarping, Sauvola binarization, shadow division |
+| `test/document_crud_test.dart` (Suite 10) | Color-Keyed Watermark & Area Eraser | **PASS** | Red/gray watermark stripper & seamless inpainting |
+| `test/document_crud_test.dart` (Suite 11) | Word DOCX OpenXML Watermark Stripper | **PASS** | Strips VML & WordArt watermark shapes from DOCX archive |
+| `test/document_crud_test.dart` (Suite 12) | PDF Watermark Redaction & Whiteout | **PASS** | Clean whiteout covers header/footer watermark stamps |
 | GitHub Actions CI (`build_apk.yml`) | Android Signed Release Build | **PASS** | Run `42334693803` succeeded; signed `SG-Reader.apk` (71.5 MB) |
 
 ---

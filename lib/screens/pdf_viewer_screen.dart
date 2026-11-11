@@ -224,6 +224,145 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
     }
   }
 
+  void _showWatermarkRedactDialog() {
+    String selectedArea = 'footer';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: SGTheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: SGTheme.accent.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.cleaning_services_outlined, color: SGTheme.accent, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Remove Watermark from PDF",
+                        style: TextStyle(color: SGTheme.text, fontSize: 17, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        "Clean unwanted stamps or footers on Page $_currentPage",
+                        style: const TextStyle(color: SGTheme.textSecondary, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text("Select Watermark Location on Page:", style: TextStyle(color: SGTheme.textSecondary, fontSize: 13)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: [
+                  ChoiceChip(
+                    label: const Text("Bottom Footer (e.g. Scanned with...)"),
+                    selected: selectedArea == 'footer',
+                    selectedColor: SGTheme.accentDeep,
+                    labelStyle: TextStyle(color: selectedArea == 'footer' ? Colors.white : SGTheme.text),
+                    onSelected: (val) {
+                      if (val) setSheetState(() => selectedArea = 'footer');
+                    },
+                  ),
+                  ChoiceChip(
+                    label: const Text("Top Header"),
+                    selected: selectedArea == 'header',
+                    selectedColor: SGTheme.accentDeep,
+                    labelStyle: TextStyle(color: selectedArea == 'header' ? Colors.white : SGTheme.text),
+                    onSelected: (val) {
+                      if (val) setSheetState(() => selectedArea = 'header');
+                    },
+                  ),
+                  ChoiceChip(
+                    label: const Text("Bottom-Right Corner"),
+                    selected: selectedArea == 'bottom_right',
+                    selectedColor: SGTheme.accentDeep,
+                    labelStyle: TextStyle(color: selectedArea == 'bottom_right' ? Colors.white : SGTheme.text),
+                    onSelected: (val) {
+                      if (val) setSheetState(() => selectedArea = 'bottom_right');
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: SGTheme.accent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.cleaning_services_outlined, size: 20),
+                  label: const Text("Clean Watermark on Current Page"),
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    await _applyPdfWhiteout(selectedArea);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _applyPdfWhiteout(String area) async {
+    try {
+      final docService = DocumentService();
+      // Calculate coordinates: A4 standard points (approx 595 x 842)
+      Rect bounds = const Rect.fromLTWH(0, 780, 595, 62); // default footer
+      if (area == 'header') {
+        bounds = const Rect.fromLTWH(0, 0, 595, 55);
+      } else if (area == 'bottom_right') {
+        bounds = const Rect.fromLTWH(380, 750, 215, 92);
+      }
+
+      await docService.redactPdfWatermarkArea(
+        widget.document.path,
+        pageIndex: _currentPage > 0 ? _currentPage - 1 : 0,
+        bounds: bounds,
+      );
+
+      setState(() {
+        _reloadKey = UniqueKey();
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("✨ Watermark cleared from PDF!"),
+          backgroundColor: Color(0xFF4F7A4A),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error cleaning PDF watermark: $e")),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -305,6 +444,11 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
             onPressed: () {
               _pdfViewerController.zoomLevel = (_pdfViewerController.zoomLevel - 0.25).clamp(1.0, 3.0);
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.cleaning_services_outlined, color: SGTheme.accent, size: 22),
+            tooltip: "Remove Watermark from Page",
+            onPressed: _showWatermarkRedactDialog,
           ),
           IconButton(
             icon: const Icon(Icons.edit_note, color: SGTheme.accent, size: 26),
