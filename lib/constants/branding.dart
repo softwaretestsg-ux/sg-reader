@@ -2,9 +2,9 @@
 class BrandConstants {
   static const String appName = "Social Googol's SG Reader";
   static const String appShortName = "SG Reader";
-  static const String appVersion = "1.3.1";
-  static const int buildNumber = 16;
-  static const String fullVersionDisplay = "v1.3.1 • Build 16";
+  static const String appVersion = "1.4.0";
+  static const int buildNumber = 17;
+  static const String fullVersionDisplay = "v1.4.0 • Build 17";
   
   static const String developerName = "Social Googol";
   static const String websiteUrl = "https://www.socialgoogol.com";
