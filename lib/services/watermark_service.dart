@@ -60,11 +60,15 @@ class WatermarkService {
           final name = archFile.name.toLowerCase();
           // Target document.xml and any header XML files where watermarks live
           if (name == 'word/document.xml' || name.startsWith('word/header')) {
-            String xmlContent = utf8.decode(archFile.content as List<int>);
+            final List<int> rawFileBytes = archFile.content is List<int>
+                ? (archFile.content as List<int>)
+                : (archFile.content as dynamic).toList();
+
+            String xmlContent = utf8.decode(rawFileBytes);
 
             // 1. Remove VML Watermark Shapes (PowerPlusWaterMarkObject or _x0000_m102)
             final vmlWatermarkRegex = RegExp(
-              r'<w:r\b[^>]*>[\s\S]*?<v:shape\b[^>]*?(?:WaterMark|PowerPlus|type="#_x0000_m102")[^>]*>[\s\S]*?</v:shape>[\s\S]*?</w:r>',
+              r'<w:r\b[^>]*>(?:(?!<w:r\b)[\s\S])*?<v:shape\b[^>]*?(?:WaterMark|PowerPlus|type="#_x0000_m102")[^>]*>[\s\S]*?</v:shape>(?:(?!</w:r>)[\s\S])*?</w:r>',
               caseSensitive: false,
             );
             if (vmlWatermarkRegex.hasMatch(xmlContent)) {
@@ -84,7 +88,7 @@ class WatermarkService {
 
             // 3. Remove modern DrawingML watermark shapes
             final drawingWatermarkRegex = RegExp(
-              r'<w:drawing\b[^>]*>[\s\S]*?(?:Watermark|CONFIDENTIAL|DRAFT|SAMPLE)[\s\S]*?</w:drawing>',
+              r'<w:drawing\b[^>]*>(?:(?!<w:drawing\b)[\s\S])*?(?:Watermark|CONFIDENTIAL|DRAFT|SAMPLE)[\s\S]*?</w:drawing>',
               caseSensitive: false,
             );
             if (drawingWatermarkRegex.hasMatch(xmlContent)) {
@@ -95,7 +99,7 @@ class WatermarkService {
             final newBytes = utf8.encode(xmlContent);
             newArchive.addFile(ArchiveFile(archFile.name, newBytes.length, newBytes));
           } else {
-            newArchive.addFile(ArchiveFile(archFile.name, (archFile.content as List<int>).length, archFile.content));
+            newArchive.addFile(archFile);
           }
         }
       }
