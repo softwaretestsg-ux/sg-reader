@@ -30,9 +30,10 @@ jobs:
             echo "Keystore restored successfully."
           fi
 
-      - name: Set up Flutter (Latest Stable)
+      - name: Set up Flutter (Pinned Stable 3.47.9)
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.47.9'
           channel: 'stable'
           cache: true
 
@@ -42,6 +43,7 @@ jobs:
       - name: Generate Android Platform Files
         run: |
           flutter create . --org com.socialgoogol --project-name sg_reader --platforms android
+          rm -f android/settings.gradle.kts android/build.gradle.kts
           # Apply official Social Googol launcher branding
           cp -r assets/branding/res/mipmap-* android/app/src/main/res/
 
