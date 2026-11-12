@@ -90,20 +90,43 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadData() async {
-    final docs = await _docService.getRecentDocuments();
-    final lock = await _securityService.isAppLockEnabled();
-    setState(() {
-      _recentDocs = docs;
-      _appLockEnabled = lock;
-      _isLoading = false;
-    });
+    try {
+      final docs = await _docService.getRecentDocuments().timeout(
+        const Duration(seconds: 2),
+        onTimeout: () => [],
+      );
+      final lock = await _securityService.isAppLockEnabled().timeout(
+        const Duration(seconds: 2),
+        onTimeout: () => false,
+      );
+      if (mounted) {
+        setState(() {
+          _recentDocs = docs;
+          _appLockEnabled = lock;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error in _loadData: $e");
+      if (mounted) {
+        setState(() {
+          _recentDocs = [];
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   Future<void> _checkAppUpdate() async {
-    final update = await UpdateService.checkForUpdate();
-    if (update != null && mounted) {
-      UpdateService.showUpdateDialog(context, update);
-    }
+    try {
+      final update = await UpdateService.checkForUpdate().timeout(
+        const Duration(seconds: 3),
+        onTimeout: () => null,
+      );
+      if (update != null && mounted) {
+        UpdateService.showUpdateDialog(context, update);
+      }
+    } catch (_) {}
   }
 
   void _openDocument(DocumentFile doc) {

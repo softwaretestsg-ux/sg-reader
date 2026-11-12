@@ -8,23 +8,43 @@ class SecurityService {
   final LocalAuthentication _localAuth = LocalAuthentication();
 
   Future<bool> isEulaAccepted() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_keyEulaAccepted) ?? false;
+    try {
+      final prefs = await SharedPreferences.getInstance().timeout(
+        const Duration(seconds: 2),
+      );
+      return prefs.getBool(_keyEulaAccepted) ?? false;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> setEulaAccepted(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyEulaAccepted, value);
+    try {
+      final prefs = await SharedPreferences.getInstance().timeout(
+        const Duration(seconds: 2),
+      );
+      await prefs.setBool(_keyEulaAccepted, value);
+    } catch (_) {}
   }
 
   Future<bool> isAppLockEnabled() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_keyAppLockEnabled) ?? false;
+    try {
+      final prefs = await SharedPreferences.getInstance().timeout(
+        const Duration(seconds: 2),
+      );
+      return prefs.getBool(_keyAppLockEnabled) ?? false;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> setAppLockEnabled(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyAppLockEnabled, value);
+    try {
+      final prefs = await SharedPreferences.getInstance().timeout(
+        const Duration(seconds: 2),
+      );
+      await prefs.setBool(_keyAppLockEnabled, value);
+    } catch (_) {}
   }
 
   Future<bool> authenticateUser() async {

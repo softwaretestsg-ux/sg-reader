@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../constants/branding.dart';
 import '../constants/theme.dart';
@@ -16,51 +17,126 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   final SecurityService _securityService = SecurityService();
+  bool _hasNavigated = false;
+  bool _showManualContinue = false;
+  bool _needsUnlock = false;
+  Timer? _watchdogTimer;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1000),
     );
     _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
     _controller.forward();
 
+    // Safety Watchdog: If navigation has not occurred after 3 seconds,
+    // show manual enter button so the user can never be stuck on the splash screen.
+    _watchdogTimer = Timer(const Duration(milliseconds: 2800), () {
+      if (mounted && !_hasNavigated) {
+        setState(() {
+          _showManualContinue = true;
+        });
+      }
+    });
+
     _navigateNext();
   }
 
-  Future<void> _navigateNext() async {
-    await Future.delayed(const Duration(milliseconds: 2000));
-
-    final isEulaAccepted = await _securityService.isEulaAccepted();
-    if (!mounted) return;
-
-    if (!isEulaAccepted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const EulaScreen()),
-      );
-      return;
-    }
-
-    final isLockEnabled = await _securityService.isAppLockEnabled();
-    if (isLockEnabled) {
-      final authenticated = await _securityService.authenticateUser();
-      if (!authenticated) {
-        return;
-      }
-    }
-
-    if (!mounted) return;
+  void _safeNavigate(Widget target) {
+    if (_hasNavigated || !mounted) return;
+    _hasNavigated = true;
+    _watchdogTimer?.cancel();
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
+      MaterialPageRoute(builder: (_) => target),
     );
+  }
+
+  Future<void> _navigateNext() async {
+    try {
+      // Smooth splash display duration
+      await Future.delayed(const Duration(milliseconds: 1400));
+      if (!mounted || _hasNavigated) return;
+
+      // 1. Check EULA status safely with timeout
+      bool isEulaAccepted = false;
+      try {
+        isEulaAccepted = await _securityService.isEulaAccepted().timeout(
+          const Duration(seconds: 2),
+          onTimeout: () => false,
+        );
+      } catch (e) {
+        debugPrint("EULA check exception: $e");
+        isEulaAccepted = false;
+      }
+
+      if (!mounted || _hasNavigated) return;
+
+      if (!isEulaAccepted) {
+        _safeNavigate(const EulaScreen());
+        return;
+      }
+
+      // 2. Check App Lock status safely with timeout
+      bool isLockEnabled = false;
+      try {
+        isLockEnabled = await _securityService.isAppLockEnabled().timeout(
+          const Duration(seconds: 2),
+          onTimeout: () => false,
+        );
+      } catch (e) {
+        debugPrint("Lock check exception: $e");
+        isLockEnabled = false;
+      }
+
+      if (!mounted || _hasNavigated) return;
+
+      if (isLockEnabled) {
+        bool authenticated = false;
+        try {
+          authenticated = await _securityService.authenticateUser();
+        } catch (e) {
+          debugPrint("Biometric exception: $e");
+          authenticated = false;
+        }
+
+        if (!authenticated) {
+          if (mounted && !_hasNavigated) {
+            setState(() {
+              _needsUnlock = true;
+              _showManualContinue = true;
+            });
+          }
+          return;
+        }
+      }
+
+      // 3. Navigate to Home
+      _safeNavigate(const HomeScreen());
+    } catch (e, stack) {
+      debugPrint("Startup navigation error: $e\n$stack");
+      // Resilient fallback: Always reach HomeScreen
+      _safeNavigate(const HomeScreen());
+    }
+  }
+
+  Future<void> _retryAuthentication() async {
+    try {
+      final authenticated = await _securityService.authenticateUser();
+      if (authenticated && mounted) {
+        _safeNavigate(const HomeScreen());
+      }
+    } catch (e) {
+      debugPrint("Retry auth exception: $e");
+    }
   }
 
   @override
   void dispose() {
+    _watchdogTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -154,15 +230,48 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 ),
               ),
 
-              const SizedBox(height: 36),
-              const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(SGTheme.accent),
+              const SizedBox(height: 32),
+
+              // Dynamic Action Area: Progress or Manual/Unlock Actions
+              if (_needsUnlock) ...[
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: SGTheme.accent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.fingerprint, size: 20),
+                  label: const Text("Unlock SG Reader", style: TextStyle(fontWeight: FontWeight.bold)),
+                  onPressed: _retryAuthentication,
                 ),
-              ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => _safeNavigate(const HomeScreen()),
+                  child: const Text("Continue to App", style: TextStyle(color: SGTheme.textSecondary)),
+                ),
+              ] else if (_showManualContinue) ...[
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: SGTheme.accent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.arrow_forward, size: 18),
+                  label: const Text("Enter SG Reader", style: TextStyle(fontWeight: FontWeight.bold)),
+                  onPressed: () => _safeNavigate(const HomeScreen()),
+                ),
+              ] else ...[
+                const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(SGTheme.accent),
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 24),
 
