@@ -39,7 +39,6 @@ dev_dependencies:
 
 dependency_overrides:
   image_picker_android: 0.8.12+16
-  shared_preferences_android: 2.3.2
 
 flutter:
   uses-material-design: true
