@@ -160,13 +160,13 @@ class _PerspectiveCropperScreenState extends State<PerspectiveCropperScreen> {
                     const SizedBox(width: 14),
                     Expanded(
                       flex: 2,
-                      child: ElevatedButton.styleFrom(
-                        backgroundColor: SGTheme.accent,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ).build(
-                        context: context,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: SGTheme.accent,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
                         onPressed: _isProcessing ? null : _applyCrop,
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,

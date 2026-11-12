@@ -101,7 +101,9 @@ class _WatermarkEraserDialogState extends State<WatermarkEraserDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         width: MediaQuery.of(context).size.width * 0.92,
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+        ),
         padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -194,7 +196,7 @@ class _WatermarkEraserDialogState extends State<WatermarkEraserDialog> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: SGTheme.surfaceCard,
+                  backgroundColor: SGTheme.surface,
                   side: BorderSide(color: SGTheme.accent),
                   foregroundColor: SGTheme.accent,
                   padding: const EdgeInsets.symmetric(vertical: 10),
