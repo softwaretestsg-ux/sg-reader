@@ -24,11 +24,66 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).apply {
             setMethodCallHandler { call, result ->
-                if (call.method == "getInitialFile") {
-                    result.success(initialFileMap)
-                    initialFileMap = null // Consume once
-                } else {
-                    result.notImplemented()
+                when (call.method) {
+                    "getInitialFile" -> {
+                        result.success(initialFileMap)
+                        initialFileMap = null // Consume once
+                    }
+                    "deleteFilePermanently" -> {
+                        val path = call.argument<String>("path")
+                        val uriStr = call.argument<String>("uri")
+                        var deleted = false
+
+                        // 1. Delete via ContentResolver / DocumentsContract if URI was tracked
+                        if (!uriStr.isNullOrBlank()) {
+                            try {
+                                val targetUri = Uri.parse(uriStr)
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+                                    try {
+                                        deleted = android.provider.DocumentsContract.deleteDocument(contentResolver, targetUri)
+                                    } catch (eDoc: Exception) {
+                                        val count = contentResolver.delete(targetUri, null, null)
+                                        if (count > 0) deleted = true
+                                    }
+                                } else {
+                                    val count = contentResolver.delete(targetUri, null, null)
+                                    if (count > 0) deleted = true
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+
+                        // 2. Delete physical file path
+                        if (!path.isNullOrBlank()) {
+                            try {
+                                val f = File(path)
+                                if (f.exists()) {
+                                    if (f.delete()) deleted = true
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+
+                        // 3. Delete via MediaStore if file is in shared storage
+                        if (!path.isNullOrBlank() && path.startsWith("/storage")) {
+                            try {
+                                val mediaUri = android.provider.MediaStore.Files.getContentUri("external")
+                                val count = contentResolver.delete(
+                                    mediaUri,
+                                    "${android.provider.MediaStore.MediaColumns.DATA}=?",
+                                    arrayOf(path)
+                                )
+                                if (count > 0) deleted = true
+                            } catch (e: Exception) {
+                                // Ignore
+                            }
+                        }
+
+                        result.success(deleted)
+                    }
+                    else -> result.notImplemented()
                 }
             }
         }
@@ -115,6 +170,8 @@ class MainActivity : FlutterActivity() {
             if (destinationFile.exists() && destinationFile.length() > 0) {
                 mapOf(
                     "path" to destinationFile.absolutePath,
+                    "originalPath" to (if ("file" == uri.scheme) (uri.path ?: "") else ""),
+                    "uri" to uri.toString(),
                     "name" to fileName,
                     "mimeType" to mimeType
                 )

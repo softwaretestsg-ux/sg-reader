@@ -6,7 +6,6 @@ import '../constants/branding.dart';
 import '../constants/theme.dart';
 import '../models/document_file.dart';
 import '../services/document_service.dart';
-import '../services/security_service.dart';
 import '../services/update_service.dart';
 import '../widgets/brand_banner.dart';
 import 'pdf_viewer_screen.dart';
@@ -28,11 +27,11 @@ class _HomeScreenState extends State<HomeScreen> {
   static const MethodChannel _intentChannel = MethodChannel('com.socialgoogol.sgreader/open_file');
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final DocumentService _docService = DocumentService();
-  final SecurityService _securityService = SecurityService();
   List<DocumentFile> _recentDocs = [];
   bool _isLoading = true;
   DocumentType? _selectedFilter;
-  bool _appLockEnabled = false;
+  bool _isSelectionMode = false;
+  final Set<String> _selectedDocPaths = {};
 
   @override
   void initState() {
@@ -95,14 +94,9 @@ class _HomeScreenState extends State<HomeScreen> {
         const Duration(seconds: 2),
         onTimeout: () => [],
       );
-      final lock = await _securityService.isAppLockEnabled().timeout(
-        const Duration(seconds: 2),
-        onTimeout: () => false,
-      );
       if (mounted) {
         setState(() {
           _recentDocs = docs;
-          _appLockEnabled = lock;
           _isLoading = false;
         });
       }
@@ -363,6 +357,40 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _toggleSelection(DocumentFile doc) {
+    setState(() {
+      if (_selectedDocPaths.contains(doc.path)) {
+        _selectedDocPaths.remove(doc.path);
+        if (_selectedDocPaths.isEmpty) {
+          _isSelectionMode = false;
+        }
+      } else {
+        _selectedDocPaths.add(doc.path);
+      }
+    });
+  }
+
+  void _selectAll(List<DocumentFile> docs) {
+    setState(() {
+      if (_selectedDocPaths.length == docs.length) {
+        _selectedDocPaths.clear();
+        _isSelectionMode = false;
+      } else {
+        _selectedDocPaths.clear();
+        for (final d in docs) {
+          _selectedDocPaths.add(d.path);
+        }
+      }
+    });
+  }
+
+  void _exitSelectionMode() {
+    setState(() {
+      _isSelectionMode = false;
+      _selectedDocPaths.clear();
+    });
+  }
+
   void _confirmDeleteFilePermanently(DocumentFile doc) {
     showDialog(
       context: context,
@@ -370,7 +398,7 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: SGTheme.surface,
         title: const Text("Delete File Permanently?", style: TextStyle(color: Color(0xFFE5534B), fontWeight: FontWeight.bold)),
         content: Text(
-          "Are you sure you want to permanently delete '${doc.name}' from your device storage? This cannot be undone.",
+          "Are you sure you want to permanently delete '${doc.name}' from your device storage? This removes the physical file and cannot be undone.",
           style: const TextStyle(color: SGTheme.textSecondary, fontSize: 13, height: 1.5),
         ),
         actions: [
@@ -387,19 +415,19 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () async {
               Navigator.pop(ctx);
               try {
-                final file = File(doc.path);
-                if (await file.exists()) {
-                  await file.delete();
-                }
-                await _docService.removeRecentDocument(doc.path);
+                final success = await _docService.deleteDocumentPermanently(doc);
                 setState(() {
-                  _recentDocs.removeWhere((d) => d.path == doc.path);
+                  _recentDocs.removeWhere((d) => d.path == doc.path || (doc.originalPath != null && d.originalPath == doc.originalPath));
+                  _selectedDocPaths.remove(doc.path);
                 });
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text("Permanently deleted '${doc.name}'."),
-                    backgroundColor: const Color(0xFFE5534B),
+                    content: Text(success
+                        ? "Permanently deleted '${doc.name}' from device storage."
+                        : "Removed '${doc.name}' from recents."),
+                    backgroundColor: success ? const Color(0xFFE5534B) : SGTheme.surface,
+                    duration: const Duration(seconds: 3),
                   ),
                 );
               } catch (e) {
@@ -411,6 +439,85 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
         ],
+      ),
+    );
+  }
+
+  void _confirmDeleteSelectedFilesPermanently() {
+    final selectedDocs = _recentDocs.where((d) => _selectedDocPaths.contains(d.path)).toList();
+    if (selectedDocs.isEmpty) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: SGTheme.surface,
+        title: Text(
+          "Delete ${selectedDocs.length} ${selectedDocs.length == 1 ? 'File' : 'Files'} Permanently?",
+          style: const TextStyle(color: Color(0xFFE5534B), fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          "Are you sure you want to permanently delete ${selectedDocs.length} selected ${selectedDocs.length == 1 ? 'file' : 'files'} from your device storage? This removes the physical files and cannot be undone.",
+          style: const TextStyle(color: SGTheme.textSecondary, fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            child: const Text("Cancel", style: TextStyle(color: SGTheme.textMuted)),
+            onPressed: () => Navigator.pop(ctx),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE5534B),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Delete Permanently"),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                final count = await _docService.deleteMultipleDocumentsPermanently(selectedDocs);
+                final deletedPaths = selectedDocs.map((d) => d.path).toSet();
+                setState(() {
+                  _recentDocs.removeWhere((d) => deletedPaths.contains(d.path));
+                  _exitSelectionMode();
+                });
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("Permanently deleted $count ${count == 1 ? 'file' : 'files'} from storage."),
+                    backgroundColor: const Color(0xFFE5534B),
+                    duration: const Duration(seconds: 3),
+                  ),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Error deleting files: $e")),
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _removeSelectedFromRecents() async {
+    final selectedDocs = _recentDocs.where((d) => _selectedDocPaths.contains(d.path)).toList();
+    if (selectedDocs.isEmpty) return;
+
+    for (final doc in selectedDocs) {
+      await _docService.removeRecentDocument(doc.path);
+    }
+    final removedPaths = selectedDocs.map((d) => d.path).toSet();
+    setState(() {
+      _recentDocs.removeWhere((d) => removedPaths.contains(d.path));
+      _exitSelectionMode();
+    });
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Removed ${selectedDocs.length} ${selectedDocs.length == 1 ? 'file' : 'files'} from recents."),
+        backgroundColor: SGTheme.surface,
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -568,22 +675,6 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: () {
                 Navigator.pop(context);
                 _showClearAllConfirmDialog();
-              },
-            ),
-            SwitchListTile(
-              secondary: const Icon(Icons.fingerprint, color: SGTheme.accent),
-              title: const Text("App Lock (Biometrics/PIN)", style: TextStyle(color: SGTheme.text)),
-              subtitle: const Text(
-                "Require biometric verification to open documents",
-                style: TextStyle(color: SGTheme.textMuted, fontSize: 11),
-              ),
-              value: _appLockEnabled,
-              activeColor: SGTheme.accent,
-              onChanged: (val) async {
-                await _securityService.setAppLockEnabled(val);
-                setState(() {
-                  _appLockEnabled = val;
-                });
               },
             ),
             const Divider(color: SGTheme.border),
@@ -750,51 +841,107 @@ class _HomeScreenState extends State<HomeScreen> {
             // Section Header
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "Recent Documents",
-                    style: TextStyle(
-                      color: SGTheme.text,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                  if (filtered.isNotEmpty)
-                    Row(
+              child: _isSelectionMode
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        InkWell(
-                          onTap: _showClearAllConfirmDialog,
-                          borderRadius: BorderRadius.circular(6),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            child: Row(
-                              children: const [
-                                Icon(Icons.delete_sweep_outlined, size: 16, color: SGTheme.accent),
-                                SizedBox(width: 4),
-                                Text(
-                                  "Clear All",
-                                  style: TextStyle(
-                                    color: SGTheme.accent,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: filtered.isNotEmpty && _selectedDocPaths.length == filtered.length,
+                              tristate: _selectedDocPaths.isNotEmpty && _selectedDocPaths.length < filtered.length,
+                              activeColor: SGTheme.accent,
+                              checkColor: Colors.white,
+                              onChanged: (_) => _selectAll(filtered),
                             ),
-                          ),
+                            Text(
+                              "${_selectedDocPaths.length} Selected",
+                              style: const TextStyle(
+                                color: SGTheme.text,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          "(${filtered.length})",
-                          style: const TextStyle(color: SGTheme.textMuted, fontSize: 12),
+                        TextButton.icon(
+                          onPressed: _exitSelectionMode,
+                          icon: const Icon(Icons.close, size: 16, color: SGTheme.textSecondary),
+                          label: const Text("Done", style: TextStyle(color: SGTheme.textSecondary, fontWeight: FontWeight.bold)),
                         ),
                       ],
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Recent Documents",
+                          style: TextStyle(
+                            color: SGTheme.text,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        if (filtered.isNotEmpty)
+                          Row(
+                            children: [
+                              InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    _isSelectionMode = true;
+                                  });
+                                },
+                                borderRadius: BorderRadius.circular(6),
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.checklist, size: 16, color: SGTheme.accent),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        "Select",
+                                        style: TextStyle(
+                                          color: SGTheme.accent,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              InkWell(
+                                onTap: _showClearAllConfirmDialog,
+                                borderRadius: BorderRadius.circular(6),
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.delete_sweep_outlined, size: 16, color: SGTheme.accent),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        "Clear All",
+                                        style: TextStyle(
+                                          color: SGTheme.accent,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                "(${filtered.length})",
+                                style: const TextStyle(color: SGTheme.textMuted, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                      ],
                     ),
-                ],
-              ),
             ),
 
             // Recent Documents List or Empty State
@@ -826,6 +973,135 @@ class _HomeScreenState extends State<HomeScreen> {
                           separatorBuilder: (_, __) => const SizedBox(height: 10),
                           itemBuilder: (ctx, index) {
                             final doc = filtered[index];
+                            final isSelected = _selectedDocPaths.contains(doc.path);
+
+                            final listTile = ListTile(
+                              tileColor: isSelected ? SGTheme.accent.withOpacity(0.12) : SGTheme.surface,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(
+                                  color: isSelected ? SGTheme.accent : SGTheme.border,
+                                  width: isSelected ? 1.5 : 1,
+                                ),
+                              ),
+                              leading: _isSelectionMode
+                                  ? Checkbox(
+                                      value: isSelected,
+                                      activeColor: SGTheme.accent,
+                                      checkColor: Colors.white,
+                                      onChanged: (_) => _toggleSelection(doc),
+                                    )
+                                  : Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: _colorForType(doc.type).withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(
+                                        _iconForType(doc.type),
+                                        color: _colorForType(doc.type),
+                                        size: 22,
+                                      ),
+                                    ),
+                              title: Text(
+                                doc.name,
+                                style: const TextStyle(
+                                  color: SGTheme.text,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              subtitle: Text(
+                                "${doc.formattedSize} • ${doc.type.name.toUpperCase()}",
+                                style: const TextStyle(color: SGTheme.textMuted, fontSize: 11),
+                              ),
+                              trailing: _isSelectionMode
+                                  ? null
+                                  : PopupMenuButton<String>(
+                                      icon: const Icon(Icons.more_vert, color: SGTheme.textMuted, size: 20),
+                                      color: SGTheme.surface,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        side: const BorderSide(color: SGTheme.border),
+                                      ),
+                                      onSelected: (val) {
+                                        if (val == 'open') {
+                                          _openDocument(doc);
+                                        } else if (val == 'share') {
+                                          Share.shareXFiles([XFile(doc.path)], text: "Sharing ${doc.name} via Social Googol's SG Reader");
+                                        } else if (val == 'remove') {
+                                          _removeSingleRecentDocument(doc);
+                                        } else if (val == 'delete') {
+                                          _confirmDeleteFilePermanently(doc);
+                                        }
+                                      },
+                                      itemBuilder: (context) => [
+                                        const PopupMenuItem(
+                                          value: 'open',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.open_in_new, color: SGTheme.accent, size: 18),
+                                              SizedBox(width: 10),
+                                              Text("Open Document", style: TextStyle(color: SGTheme.text, fontSize: 13)),
+                                            ],
+                                          ),
+                                        ),
+                                        const PopupMenuItem(
+                                          value: 'share',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.share_outlined, color: Color(0xFF4B8FE5), size: 18),
+                                              SizedBox(width: 10),
+                                              Text("Share File", style: TextStyle(color: SGTheme.text, fontSize: 13)),
+                                            ],
+                                          ),
+                                        ),
+                                        const PopupMenuItem(
+                                          value: 'remove',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.close, color: SGTheme.textSecondary, size: 18),
+                                              SizedBox(width: 10),
+                                              Text("Remove from Recents", style: TextStyle(color: SGTheme.text, fontSize: 13)),
+                                            ],
+                                          ),
+                                        ),
+                                        const PopupMenuDivider(),
+                                        const PopupMenuItem(
+                                          value: 'delete',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.delete_outline, color: Color(0xFFE5534B), size: 18),
+                                              SizedBox(width: 10),
+                                              Text("Delete Permanently", style: TextStyle(color: Color(0xFFE5534B), fontSize: 13)),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                              onTap: () {
+                                if (_isSelectionMode) {
+                                  _toggleSelection(doc);
+                                } else {
+                                  _openDocument(doc);
+                                }
+                              },
+                              onLongPress: () {
+                                if (!_isSelectionMode) {
+                                  setState(() {
+                                    _isSelectionMode = true;
+                                    _selectedDocPaths.add(doc.path);
+                                  });
+                                }
+                              },
+                            );
+
+                            if (_isSelectionMode) {
+                              return listTile;
+                            }
+
                             return Dismissible(
                               key: Key(doc.path),
                               direction: DismissDirection.endToStart,
@@ -846,138 +1122,95 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ),
                               onDismissed: (_) => _removeSingleRecentDocument(doc),
-                              child: ListTile(
-                                tileColor: SGTheme.surface,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  side: const BorderSide(color: SGTheme.border),
-                                ),
-                                leading: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: _colorForType(doc.type).withOpacity(0.12),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Icon(
-                                    _iconForType(doc.type),
-                                    color: _colorForType(doc.type),
-                                    size: 22,
-                                  ),
-                                ),
-                                title: Text(
-                                  doc.name,
-                                  style: const TextStyle(
-                                    color: SGTheme.text,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                subtitle: Text(
-                                  "${doc.formattedSize} • ${doc.type.name.toUpperCase()}",
-                                  style: const TextStyle(color: SGTheme.textMuted, fontSize: 11),
-                                ),
-                                trailing: PopupMenuButton<String>(
-                                  icon: const Icon(Icons.more_vert, color: SGTheme.textMuted, size: 20),
-                                  color: SGTheme.surface,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    side: const BorderSide(color: SGTheme.border),
-                                  ),
-                                  onSelected: (val) {
-                                    if (val == 'open') {
-                                      _openDocument(doc);
-                                    } else if (val == 'share') {
-                                      Share.shareXFiles([XFile(doc.path)], text: "Sharing ${doc.name} via Social Googol's SG Reader");
-                                    } else if (val == 'remove') {
-                                      _removeSingleRecentDocument(doc);
-                                    } else if (val == 'delete') {
-                                      _confirmDeleteFilePermanently(doc);
-                                    }
-                                  },
-                                  itemBuilder: (context) => [
-                                    const PopupMenuItem(
-                                      value: 'open',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.open_in_new, color: SGTheme.accent, size: 18),
-                                          SizedBox(width: 10),
-                                          Text("Open Document", style: TextStyle(color: SGTheme.text, fontSize: 13)),
-                                        ],
-                                      ),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'share',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.share_outlined, color: Color(0xFF4B8FE5), size: 18),
-                                          SizedBox(width: 10),
-                                          Text("Share File", style: TextStyle(color: SGTheme.text, fontSize: 13)),
-                                        ],
-                                      ),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'remove',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.close, color: SGTheme.textSecondary, size: 18),
-                                          SizedBox(width: 10),
-                                          Text("Remove from Recents", style: TextStyle(color: SGTheme.text, fontSize: 13)),
-                                        ],
-                                      ),
-                                    ),
-                                    const PopupMenuDivider(),
-                                    const PopupMenuItem(
-                                      value: 'delete',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.delete_outline, color: Color(0xFFE5534B), size: 18),
-                                          SizedBox(width: 10),
-                                          Text("Delete Permanently", style: TextStyle(color: Color(0xFFE5534B), fontSize: 13)),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                onTap: () => _openDocument(doc),
-                              ),
+                              child: listTile,
                             );
                           },
                         ),
             ),
+
+            // Multi-Selection Bottom Action Bar
+            if (_isSelectionMode)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: const BoxDecoration(
+                  color: SGTheme.surface,
+                  border: Border(top: BorderSide(color: SGTheme.border)),
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: SGTheme.border),
+                            foregroundColor: SGTheme.text,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          icon: const Icon(Icons.close, size: 16),
+                          label: Text(
+                            "Remove Recents (${_selectedDocPaths.length})",
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
+                          onPressed: _selectedDocPaths.isEmpty ? null : _removeSelectedFromRecents,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE5534B),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          icon: const Icon(Icons.delete_forever, size: 16),
+                          label: Text(
+                            "Delete (${_selectedDocPaths.length})",
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                          onPressed: _selectedDocPaths.isEmpty ? null : _confirmDeleteSelectedFilesPermanently,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            FloatingActionButton.extended(
-              heroTag: "scan_btn",
-              backgroundColor: SGTheme.accent,
-              icon: const Icon(Icons.document_scanner_outlined, color: Colors.white, size: 20),
-              label: const Text(
-                "Scan Doc",
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+      floatingActionButton: _isSelectionMode
+          ? null
+          : Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FloatingActionButton.extended(
+                    heroTag: "scan_btn",
+                    backgroundColor: SGTheme.accent,
+                    icon: const Icon(Icons.document_scanner_outlined, color: Colors.white, size: 20),
+                    label: const Text(
+                      "Scan Doc",
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    onPressed: _launchDocumentScanner,
+                  ),
+                  const SizedBox(width: 10),
+                  FloatingActionButton.extended(
+                    heroTag: "open_btn",
+                    backgroundColor: SGTheme.surface,
+                    icon: const Icon(Icons.file_open_outlined, color: SGTheme.accent, size: 20),
+                    label: const Text(
+                      "Open File",
+                      style: TextStyle(color: SGTheme.text, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    onPressed: _pickAndOpenFile,
+                  ),
+                ],
               ),
-              onPressed: _launchDocumentScanner,
             ),
-            const SizedBox(width: 10),
-            FloatingActionButton.extended(
-              heroTag: "open_btn",
-              backgroundColor: SGTheme.surface,
-              icon: const Icon(Icons.file_open_outlined, color: SGTheme.accent, size: 20),
-              label: const Text(
-                "Open File",
-                style: TextStyle(color: SGTheme.text, fontWeight: FontWeight.bold, fontSize: 13),
-              ),
-              onPressed: _pickAndOpenFile,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

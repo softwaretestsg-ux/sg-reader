@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' show Rect;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -30,28 +31,39 @@ class DocumentService {
       final fileName = pickedFile.name;
       final docType = DocumentFile.detectType(fileName);
 
+      String? originalPath = pickedFile.path;
+      String activePath = pickedFile.path ?? '';
+
       final appDir = await getApplicationDocumentsDirectory();
       final localSafePath = '${appDir.path}/$fileName';
       final safeFile = File(localSafePath);
 
       if (pickedFile.bytes != null && pickedFile.bytes!.isNotEmpty) {
         await safeFile.writeAsBytes(pickedFile.bytes!, flush: true);
+        activePath = safeFile.path;
       } else if (pickedFile.path != null && pickedFile.path!.isNotEmpty) {
         final original = File(pickedFile.path!);
         if (await original.exists()) {
-          await original.copy(localSafePath);
+          try {
+            await original.copy(localSafePath);
+          } catch (_) {}
         }
       }
 
+      if (activePath.isEmpty || !await File(activePath).exists()) {
+        activePath = safeFile.path;
+      }
+
       int length = 0;
-      if (await safeFile.exists()) {
-        length = await safeFile.length();
+      if (await File(activePath).exists()) {
+        length = await File(activePath).length();
       } else {
         length = pickedFile.size;
       }
 
       final doc = DocumentFile(
-        path: safeFile.path,
+        path: activePath,
+        originalPath: originalPath,
         name: fileName,
         sizeInBytes: length,
         type: docType,
@@ -130,6 +142,81 @@ class DocumentService {
     } catch (e) {
       debugPrint("Error removing recent document: $e");
     }
+  }
+
+  /// Permanently deletes document from device storage.
+  /// Deletes the primary file, original source path, internal cached copies,
+  /// and invokes native Android ContentResolver/SAF deletion when URI is available.
+  Future<bool> deleteDocumentPermanently(DocumentFile doc) async {
+    bool deleted = false;
+
+    // 1. Delete primary file path
+    try {
+      final f = File(doc.path);
+      if (await f.exists()) {
+        await f.delete();
+        deleted = true;
+      }
+    } catch (e) {
+      debugPrint("Could not delete primary file ${doc.path}: $e");
+    }
+
+    // 2. Delete original source path if different
+    if (doc.originalPath != null && doc.originalPath != doc.path) {
+      try {
+        final orig = File(doc.originalPath!);
+        if (await orig.exists()) {
+          await orig.delete();
+          deleted = true;
+        }
+      } catch (e) {
+        debugPrint("Could not delete original file ${doc.originalPath}: $e");
+      }
+    }
+
+    // 3. Delete any internal app document copy
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final internalCopy = File('${appDir.path}/${doc.name}');
+      if (await internalCopy.exists() &&
+          internalCopy.path != doc.path &&
+          internalCopy.path != doc.originalPath) {
+        await internalCopy.delete();
+        deleted = true;
+      }
+    } catch (_) {}
+
+    // 4. Request native Android ContentResolver / DocumentsContract deletion
+    try {
+      const channel = MethodChannel('com.socialgoogol.sgreader/open_file');
+      final nativeResult = await channel.invokeMethod<bool>('deleteFilePermanently', {
+        'path': doc.originalPath ?? doc.path,
+        'uri': doc.uri,
+      });
+      if (nativeResult == true) {
+        deleted = true;
+      }
+    } catch (e) {
+      debugPrint("Native platform deletion channel: $e");
+    }
+
+    // 5. Remove from Recent Documents
+    await removeRecentDocument(doc.path);
+    if (doc.originalPath != null) {
+      await removeRecentDocument(doc.originalPath!);
+    }
+
+    return deleted;
+  }
+
+  /// Permanently deletes a list of documents from device storage (Batch Deletion)
+  Future<int> deleteMultipleDocumentsPermanently(List<DocumentFile> docs) async {
+    int count = 0;
+    for (final doc in docs) {
+      final success = await deleteDocumentPermanently(doc);
+      if (success) count++;
+    }
+    return count;
   }
 
   // ==========================================

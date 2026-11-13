@@ -314,17 +314,77 @@ void main() {
       expect(BrandConstants.contactPhoneFormatted, "+91 81262 10003");
     });
 
-    test('SecurityService: EULA and App Lock state persistence', () async {
+    test('SecurityService: EULA state persistence', () async {
       SharedPreferences.setMockInitialValues({});
       final security = SecurityService();
 
       expect(await security.isEulaAccepted(), false);
       await security.setEulaAccepted(true);
       expect(await security.isEulaAccepted(), true);
+    });
 
-      expect(await security.isAppLockEnabled(), false);
-      await security.setAppLockEnabled(true);
-      expect(await security.isAppLockEnabled(), true);
+    // -------------------------------------------------------------
+    // 8B. PERMANENT DOCUMENT DELETION (SINGLE & BATCH) TEST
+    // -------------------------------------------------------------
+    test('Document Deletion: Permanently delete physical file(s) and clean recents', () async {
+      SharedPreferences.setMockInitialValues({});
+
+      // Create test files simulating original downloads and internal sandbox copies
+      final originalFile1 = File('${tempDir.path}/Download_Doc1.pdf');
+      await originalFile1.writeAsString("Original Content 1");
+      final sandboxFile1 = File('${tempDir.path}/Sandbox_Doc1.pdf');
+      await sandboxFile1.writeAsString("Sandbox Copy 1");
+
+      final originalFile2 = File('${tempDir.path}/Download_Doc2.docx');
+      await originalFile2.writeAsString("Original Content 2");
+      final sandboxFile2 = File('${tempDir.path}/Sandbox_Doc2.docx');
+      await sandboxFile2.writeAsString("Sandbox Copy 2");
+
+      expect(originalFile1.existsSync(), true);
+      expect(sandboxFile1.existsSync(), true);
+      expect(originalFile2.existsSync(), true);
+      expect(sandboxFile2.existsSync(), true);
+
+      final doc1 = DocumentFile(
+        path: sandboxFile1.path,
+        originalPath: originalFile1.path,
+        name: 'Doc1.pdf',
+        sizeInBytes: 1024,
+        type: DocumentType.pdf,
+        lastOpened: DateTime.now(),
+      );
+
+      final doc2 = DocumentFile(
+        path: sandboxFile2.path,
+        originalPath: originalFile2.path,
+        name: 'Doc2.docx',
+        sizeInBytes: 2048,
+        type: DocumentType.word,
+        lastOpened: DateTime.now(),
+      );
+
+      await docService.saveRecentDocument(doc1);
+      await docService.saveRecentDocument(doc2);
+      expect((await docService.getRecentDocuments()).length, 2);
+
+      // 1. Delete single doc permanently
+      final deleted1 = await docService.deleteDocumentPermanently(doc1);
+      expect(deleted1, true);
+      expect(sandboxFile1.existsSync(), false);
+      expect(originalFile1.existsSync(), false);
+
+      var remainingRecents = await docService.getRecentDocuments();
+      expect(remainingRecents.length, 1);
+      expect(remainingRecents.first.name, 'Doc2.docx');
+
+      // 2. Delete batch docs permanently
+      final count = await docService.deleteMultipleDocumentsPermanently([doc2]);
+      expect(count, 1);
+      expect(sandboxFile2.existsSync(), false);
+      expect(originalFile2.existsSync(), false);
+
+      remainingRecents = await docService.getRecentDocuments();
+      expect(remainingRecents.isEmpty, true);
     });
 
     // -------------------------------------------------------------

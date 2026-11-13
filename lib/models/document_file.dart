@@ -11,6 +11,8 @@ enum DocumentType {
 
 class DocumentFile {
   final String path;
+  final String? originalPath;
+  final String? uri;
   final String name;
   final int sizeInBytes;
   final DocumentType type;
@@ -18,6 +20,8 @@ class DocumentFile {
 
   DocumentFile({
     required this.path,
+    this.originalPath,
+    this.uri,
     required this.name,
     required this.sizeInBytes,
     required this.type,
@@ -100,6 +104,8 @@ class DocumentFile {
 
   Map<String, dynamic> toJson() => {
         'path': path,
+        if (originalPath != null) 'originalPath': originalPath,
+        if (uri != null) 'uri': uri,
         'name': name,
         'sizeInBytes': sizeInBytes,
         'type': type.index,
@@ -108,6 +114,8 @@ class DocumentFile {
 
   factory DocumentFile.fromJson(Map<String, dynamic> json) => DocumentFile(
         path: json['path'],
+        originalPath: json['originalPath'],
+        uri: json['uri'],
         name: json['name'],
         sizeInBytes: json['sizeInBytes'],
         type: DocumentType.values[json['type'] ?? 0],
