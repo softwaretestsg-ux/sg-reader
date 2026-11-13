@@ -56,45 +56,41 @@ jobs:
       - name: Build Official Signed Release APK
         run: |
           BUILD_NUM=${{ github.run_number }}
-          flutter build apk --release --build-number=$BUILD_NUM --build-name="1.4.0" --android-skip-build-dependency-validation
+          flutter build apk --release --build-number=$BUILD_NUM --build-name="1.5.0" --android-skip-build-dependency-validation
           cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/SG-Reader.apk"
-          cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/SG-Reader-v1.4.0.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/SG-Reader-v1.5.0.apk"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SG-Reader-v1.4.0-Release
+          name: SG-Reader-v1.5.0-Release
           path: "build/app/outputs/flutter-apk/SG-Reader.apk"
 
       - name: Publish Direct APK Download on GitHub Releases
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main')
         with:
-          tag_name: v1.4.0
-          name: "Social Googol SG Reader (Official Release v1.4.0)"
+          tag_name: v1.5.0
+          name: "Social Googol SG Reader (Official Release v1.5.0)"
           body: |
-            ### 🛡️ Social Googol's SG Reader - Official Android APK (v1.4.0)
+            ### 🛡️ Social Googol's SG Reader - Official Android APK (v1.5.0)
             **Tagline:** Secure to Grow - सुरक्षा से ग्रोथ तक
             **Website:** https://www.socialgoogol.com
             **Helpline:** +91 81262 10003
 
             ---
-            ### 🔄 What's New in v1.4.0:
-            - **Upgraded In-built Document Scanner:**
-              - Interactive **4-Point Perspective Dewarping & Corner Crop** to flatten skewed angle photos.
-              - **Shadow-Immune Background Division** to eliminate room lighting and hand shadows.
-              - **Adaptive Local Binarization (Crisp B&W)** for high-contrast photocopy text quality.
-            - **Universal Watermark Removal Engine:**
-              - Clean red/blue/gray watermark stamps from scanned document pages.
-              - Strip OpenXML VML & WordArt watermark shapes from Word (.docx) documents.
-              - Clean paper whiteout redaction for PDF headers, footers, and corner stamps.
-            - **Security & Quality Hardening:**
-              - Dynamic in-app update version synchronization.
-              - Hardened biometric exception handling (fails closed securely).
-            - **Initial Screen Version:** Displays `v1.4.0 • Build ${{ github.run_number }}` on launch splash screen.
+            ### 🔄 What's New in v1.5.0:
+            - **Permanent Physical File Deletion (Single & Batch):**
+              - Full Scoped Storage & All Files Access management for Android 11, 12, 13, 14, 15.
+              - Native SAF document picker retains persistable delete permissions and resolves real storage paths.
+              - Multi-selection mode in Recent Documents with "Delete Permanently" and "Remove Recents".
+            - **Clean UI & Fingerprint Removal:**
+              - Completely removed fingerprint/biometric lock as requested for simplicity and speed.
+              - Instant launch to Home screen without EULA loops.
+            - **Version Bump:** Upgraded to `v1.5.0 • Build 18`.
 
             ### 📲 Direct 1-Click APK Download:
             Download the official signed release directly to your Android device below:
           files: |
             build/app/outputs/flutter-apk/SG-Reader.apk
-            build/app/outputs/flutter-apk/SG-Reader-v1.4.0.apk
+            build/app/outputs/flutter-apk/SG-Reader-v1.5.0.apk

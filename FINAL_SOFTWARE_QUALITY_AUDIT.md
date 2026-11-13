@@ -2,7 +2,7 @@
 **Application:** Social Googol's SG Reader  
 **Tagline:** Secure to Grow - सुरक्षा से ग्रोथ तक  
 **Package ID:** `com.socialgoogol.sgreader`  
-**Current Tracked Version:** v1.4.0 (Build 17)  
+**Current Tracked Version:** v1.5.0 (Build 18)  
 **Date of Audit:** November 11, 2026  
 **Audit Team:** Senior QA Engineer, UI/UX Design Auditor, Software Architect, Security & Accessibility Specialist, Release Readiness Engineer  
 **Audit Scope:** Complete SG Reader Android Software Application (Audit & Recommendations Only)

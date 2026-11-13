@@ -63,6 +63,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _handleIncomingFileMap(Map<String, dynamic> fileMap) async {
     final filePath = fileMap['path'] as String?;
+    final originalPath = fileMap['originalPath'] as String?;
+    final uriStr = fileMap['uri'] as String?;
     final fileName = fileMap['name'] as String? ?? 'Document';
     final mimeType = fileMap['mimeType'] as String?;
 
@@ -78,6 +80,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final doc = DocumentFile(
       path: filePath,
+      originalPath: (originalPath != null && originalPath.isNotEmpty) ? originalPath : null,
+      uri: (uriStr != null && uriStr.isNotEmpty) ? uriStr : null,
       name: fileName,
       sizeInBytes: size,
       type: type,
@@ -391,6 +395,47 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<bool> _ensureStoragePermission() async {
+    final hasPerm = await _docService.hasStoragePermission();
+    if (hasPerm) return true;
+
+    if (!mounted) return false;
+    final proceed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: SGTheme.surface,
+        title: const Text(
+          "Device Storage Permission Needed",
+          style: TextStyle(color: SGTheme.accent, fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          "To permanently delete documents from device storage (Downloads, Documents, and SD Card), Android requires 'All files access'.\n\nPlease enable 'Allow access to manage all files' for SG Reader in the next screen.",
+          style: TextStyle(color: SGTheme.textSecondary, fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            child: const Text("Cancel", style: TextStyle(color: SGTheme.textMuted)),
+            onPressed: () => Navigator.pop(ctx, false),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: SGTheme.accent,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Grant Permission"),
+            onPressed: () => Navigator.pop(ctx, true),
+          ),
+        ],
+      ),
+    );
+
+    if (proceed == true) {
+      await _docService.requestStoragePermission();
+    }
+    return false;
+  }
+
   void _confirmDeleteFilePermanently(DocumentFile doc) {
     showDialog(
       context: context,
@@ -414,6 +459,13 @@ class _HomeScreenState extends State<HomeScreen> {
             child: const Text("Delete Permanently"),
             onPressed: () async {
               Navigator.pop(ctx);
+              final hasPerm = await _ensureStoragePermission();
+              if (!hasPerm && mounted) {
+                // Check if permission was already granted or requested
+                final recheck = await _docService.hasStoragePermission();
+                if (!recheck) return;
+              }
+
               try {
                 final success = await _docService.deleteDocumentPermanently(doc);
                 setState(() {
@@ -472,6 +524,12 @@ class _HomeScreenState extends State<HomeScreen> {
             child: const Text("Delete Permanently"),
             onPressed: () async {
               Navigator.pop(ctx);
+              final hasPerm = await _ensureStoragePermission();
+              if (!hasPerm && mounted) {
+                final recheck = await _docService.hasStoragePermission();
+                if (!recheck) return;
+              }
+
               try {
                 final count = await _docService.deleteMultipleDocumentsPermanently(selectedDocs);
                 final deletedPaths = selectedDocs.map((d) => d.path).toSet();

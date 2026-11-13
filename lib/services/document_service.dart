@@ -15,8 +15,67 @@ import '../models/document_file.dart';
 class DocumentService {
   static const String _recentDocsKey = 'recent_documents_v1';
 
-  /// Picks a document reliably across all Android versions
+  /// Checks whether Android All Files Access / Storage permission is granted
+  Future<bool> hasStoragePermission() async {
+    try {
+      if (!Platform.isAndroid) return true;
+      const channel = MethodChannel('com.socialgoogol.sgreader/open_file');
+      final result = await channel.invokeMethod<bool>('hasStoragePermission');
+      return result ?? false;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// Requests Android All Files Access / Storage permission from system settings
+  Future<void> requestStoragePermission() async {
+    try {
+      if (!Platform.isAndroid) return;
+      const channel = MethodChannel('com.socialgoogol.sgreader/open_file');
+      await channel.invokeMethod('requestStoragePermission');
+    } catch (_) {}
+  }
+
+  /// Picks a document reliably across all Android versions.
+  /// Prefers native SAF document picker to retain persistable delete permissions
+  /// and genuine storage paths, falling back to FilePicker if needed.
   Future<DocumentFile?> pickDocument() async {
+    // 1. Try native platform picker on Android (captures real path & persistable delete URI)
+    try {
+      if (Platform.isAndroid) {
+        const channel = MethodChannel('com.socialgoogol.sgreader/open_file');
+        final nativeMap = await channel.invokeMethod<Map>('pickDocument');
+        if (nativeMap != null) {
+          final map = Map<String, dynamic>.from(nativeMap);
+          final filePath = map['path'] as String?;
+          final originalPath = map['originalPath'] as String?;
+          final uriStr = map['uri'] as String?;
+          final fileName = map['name'] as String? ?? 'Document';
+          final size = (map['sizeInBytes'] as num?)?.toInt() ?? 0;
+          final docType = DocumentFile.detectType(fileName);
+
+          if (filePath != null && await File(filePath).exists()) {
+            final doc = DocumentFile(
+              path: filePath,
+              originalPath: (originalPath != null && originalPath.isNotEmpty) ? originalPath : null,
+              uri: (uriStr != null && uriStr.isNotEmpty) ? uriStr : null,
+              name: fileName,
+              sizeInBytes: size > 0 ? size : await File(filePath).length(),
+              type: docType,
+              lastOpened: DateTime.now(),
+            );
+            await saveRecentDocument(doc);
+            return doc;
+          }
+        }
+        // User cancelled picker
+        return null;
+      }
+    } catch (e) {
+      debugPrint("Native picker exception, falling back to FilePicker: $e");
+    }
+
+    // 2. Fallback to FilePicker
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.any,
@@ -186,15 +245,19 @@ class DocumentService {
       }
     } catch (_) {}
 
-    // 4. Request native Android ContentResolver / DocumentsContract deletion
+    // 4. Request native Android ContentResolver / DocumentsContract / MediaStore deletion
     try {
-      const channel = MethodChannel('com.socialgoogol.sgreader/open_file');
-      final nativeResult = await channel.invokeMethod<bool>('deleteFilePermanently', {
-        'path': doc.originalPath ?? doc.path,
-        'uri': doc.uri,
-      });
-      if (nativeResult == true) {
-        deleted = true;
+      if (Platform.isAndroid) {
+        const channel = MethodChannel('com.socialgoogol.sgreader/open_file');
+        final nativeResult = await channel.invokeMethod<bool>('deleteFilePermanently', {
+          'path': doc.path,
+          'originalPath': doc.originalPath,
+          'uri': doc.uri,
+          'name': doc.name,
+        });
+        if (nativeResult == true) {
+          deleted = true;
+        }
       }
     } catch (e) {
       debugPrint("Native platform deletion channel: $e");
