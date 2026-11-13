@@ -3,6 +3,7 @@ import 'package:share_plus/share_plus.dart';
 import '../constants/theme.dart';
 import '../models/document_file.dart';
 import '../services/document_service.dart';
+import '../widgets/zoom_controls_dock.dart';
 
 class PptxViewerScreen extends StatefulWidget {
   final DocumentFile document;
@@ -20,6 +21,8 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
   bool _hasUnsavedEdits = false;
   int _currentSlideIndex = 0;
   final PageController _pageController = PageController();
+  final TransformationController _transformationController = TransformationController();
+  double _currentZoom = 1.0;
 
   @override
   void initState() {
@@ -45,7 +48,17 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
   @override
   void dispose() {
     _pageController.dispose();
+    _transformationController.dispose();
     super.dispose();
+  }
+
+  void _updateZoom(double newZoom) {
+    final clamped = newZoom.clamp(0.8, 4.0);
+    final matrix = Matrix4.identity()..scale(clamped);
+    _transformationController.value = matrix;
+    setState(() {
+      _currentZoom = clamped;
+    });
   }
 
   Future<void> _sharePresentation() async {
@@ -232,83 +245,115 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
               ? const Center(
                   child: Text("No slide content detected in presentation.", style: TextStyle(color: SGTheme.textSecondary)),
                 )
-              : PageView.builder(
-                  controller: _pageController,
-                  itemCount: _slides.length,
-                  onPageChanged: (idx) {
-                    setState(() {
-                      _currentSlideIndex = idx;
-                    });
-                  },
-                  itemBuilder: (ctx, slideIdx) {
-                    final slideLines = _slides[slideIdx];
-                    return Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Card(
-                        color: SGTheme.surface,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          side: const BorderSide(color: SGTheme.border),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(22.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: SGTheme.accentDeep,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      "SLIDE ${slideIdx + 1}",
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  const Icon(Icons.slideshow_outlined, color: SGTheme.textMuted),
-                                ],
+              : Stack(
+                  children: [
+                    PageView.builder(
+                      controller: _pageController,
+                      itemCount: _slides.length,
+                      onPageChanged: (idx) {
+                        setState(() {
+                          _currentSlideIndex = idx;
+                          _transformationController.value = Matrix4.identity();
+                          _currentZoom = 1.0;
+                        });
+                      },
+                      itemBuilder: (ctx, slideIdx) {
+                        final slideLines = _slides[slideIdx];
+                        return InteractiveViewer(
+                          transformationController: _transformationController,
+                          minScale: 0.8,
+                          maxScale: 4.0,
+                          onInteractionUpdate: (_) {
+                            final scale = _transformationController.value.getMaxScaleOnAxis();
+                            if ((scale - _currentZoom).abs() > 0.02) {
+                              setState(() {
+                                _currentZoom = scale;
+                              });
+                            }
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Card(
+                              color: SGTheme.surface,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                side: const BorderSide(color: SGTheme.border),
                               ),
-                              const Divider(color: SGTheme.border, height: 24),
-                              Expanded(
-                                child: ListView.builder(
-                                  itemCount: slideLines.length,
-                                  itemBuilder: (ctx, lineIdx) {
-                                    final line = slideLines[lineIdx];
-                                    final isHeading = lineIdx == 0;
-                                    return InkWell(
-                                      onTap: () => _editSlideLine(slideIdx, lineIdx, line),
-                                      borderRadius: BorderRadius.circular(6),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                                        child: Text(
-                                          line,
-                                          style: TextStyle(
-                                            color: isHeading ? SGTheme.accent : SGTheme.text,
-                                            fontSize: isHeading ? 17 : 14,
-                                            fontWeight: isHeading ? FontWeight.bold : FontWeight.normal,
-                                            height: 1.45,
+                              child: Padding(
+                                padding: const EdgeInsets.all(22.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: SGTheme.accentDeep,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            "SLIDE ${slideIdx + 1}",
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ),
+                                        const Icon(Icons.slideshow_outlined, color: SGTheme.textMuted),
+                                      ],
+                                    ),
+                                    const Divider(color: SGTheme.border, height: 24),
+                                    Expanded(
+                                      child: ListView.builder(
+                                        itemCount: slideLines.length,
+                                        itemBuilder: (ctx, lineIdx) {
+                                          final line = slideLines[lineIdx];
+                                          final isHeading = lineIdx == 0;
+                                          return InkWell(
+                                            onTap: () => _editSlideLine(slideIdx, lineIdx, line),
+                                            borderRadius: BorderRadius.circular(6),
+                                            child: Padding(
+                                              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                                              child: Text(
+                                                line,
+                                                style: TextStyle(
+                                                  color: isHeading ? SGTheme.accent : SGTheme.text,
+                                                  fontSize: isHeading ? 17 : 14,
+                                                  fontWeight: isHeading ? FontWeight.bold : FontWeight.normal,
+                                                  height: 1.45,
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
                                       ),
-                                    );
-                                  },
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ],
+                            ),
                           ),
-                        ),
+                        );
+                      },
+                    ),
+                    Positioned(
+                      bottom: 24,
+                      right: 16,
+                      child: ZoomControlsDock(
+                        currentZoom: _currentZoom,
+                        minZoom: 0.8,
+                        maxZoom: 4.0,
+                        onZoomIn: () => _updateZoom(_currentZoom + 0.25),
+                        onZoomOut: () => _updateZoom(_currentZoom - 0.25),
+                        onResetZoom: () => _updateZoom(1.0),
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: SGTheme.accentDeep,
         icon: const Icon(Icons.add, color: Colors.white),

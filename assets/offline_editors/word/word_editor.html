@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
   <title>Social Googol SG Word Processor</title>
   <style>
     * {
@@ -501,6 +501,54 @@
         notifyFlutter('error', { error: err.message });
       }
     };
+
+    window.setZoomScale = function(scale) {
+      var sheet = document.getElementById('editor_sheet');
+      if (sheet) {
+        sheet.style.transformOrigin = 'top center';
+        sheet.style.transform = 'scale(' + scale + ')';
+        sheet.style.transition = 'transform 0.15s ease-out';
+      }
+    };
+
+    // Pinch-to-zoom gesture tracking
+    var initialPinchDist = 0;
+    var currentScale = 1.0;
+    var scrollContainer = document.getElementById('editor_scroll_container');
+    if (scrollContainer) {
+      scrollContainer.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 2) {
+          initialPinchDist = Math.hypot(
+            e.touches[0].pageX - e.touches[1].pageX,
+            e.touches[0].pageY - e.touches[1].pageY
+          );
+        }
+      }, { passive: true });
+
+      scrollContainer.addEventListener('touchmove', function(e) {
+        if (e.touches.length === 2 && initialPinchDist > 0) {
+          var dist = Math.hypot(
+            e.touches[0].pageX - e.touches[1].pageX,
+            e.touches[0].pageY - e.touches[1].pageY
+          );
+          var factor = dist / initialPinchDist;
+          var newScale = Math.min(Math.max(currentScale * factor, 0.7), 4.0);
+          window.setZoomScale(newScale);
+          notifyFlutter('zoomChanged', { zoom: newScale });
+        }
+      }, { passive: true });
+
+      scrollContainer.addEventListener('touchend', function(e) {
+        if (e.touches.length < 2) {
+          initialPinchDist = 0;
+          var sheet = document.getElementById('editor_sheet');
+          if (sheet && sheet.style.transform) {
+            var match = sheet.style.transform.match(/scale\(([^)]+)\)/);
+            if (match) currentScale = parseFloat(match[1]);
+          }
+        }
+      });
+    }
 
     function notifyFlutter(action, payload) {
       var msg = JSON.stringify({ action: action, payload: payload });

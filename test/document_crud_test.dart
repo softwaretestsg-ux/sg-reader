@@ -300,9 +300,9 @@ void main() {
     // -------------------------------------------------------------
     test('UpdateService: Version code dynamically synchronizes with BrandConstants', () {
       expect(UpdateService.currentVersionCode, BrandConstants.buildNumber);
-      expect(UpdateService.currentVersionCode, 19);
-      expect(BrandConstants.appVersion, "1.5.1");
-      expect(BrandConstants.fullVersionDisplay, "v1.5.1 • Build 19");
+      expect(UpdateService.currentVersionCode, 20);
+      expect(BrandConstants.appVersion, "1.5.2");
+      expect(BrandConstants.fullVersionDisplay, "v1.5.2 • Build 20");
     });
 
     test('BrandConstants: Bilingual tagline and identity integrity', () {

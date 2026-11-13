@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
   <title>Social Googol SG Spreadsheet</title>
   <link rel="stylesheet" href="xspreadsheet.css">
   <style>
@@ -483,6 +483,55 @@
         notifyFlutter('error', { error: err.message });
       }
     };
+
+    window.setZoomScale = function(scale) {
+      var grid = document.getElementById('grid_container');
+      if (grid) {
+        grid.style.transformOrigin = 'top left';
+        grid.style.transform = 'scale(' + scale + ')';
+        grid.style.width = (100 / scale) + '%';
+        grid.style.height = (100 / scale) + '%';
+        grid.style.transition = 'transform 0.15s ease-out';
+      }
+    };
+
+    // Pinch-to-zoom support for spreadsheet grid
+    var initialPinchDist = 0;
+    var currentScale = 1.0;
+    var gridEl = document.getElementById('grid_container');
+    if (gridEl) {
+      gridEl.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 2) {
+          initialPinchDist = Math.hypot(
+            e.touches[0].pageX - e.touches[1].pageX,
+            e.touches[0].pageY - e.touches[1].pageY
+          );
+        }
+      }, { passive: true });
+
+      gridEl.addEventListener('touchmove', function(e) {
+        if (e.touches.length === 2 && initialPinchDist > 0) {
+          var dist = Math.hypot(
+            e.touches[0].pageX - e.touches[1].pageX,
+            e.touches[0].pageY - e.touches[1].pageY
+          );
+          var factor = dist / initialPinchDist;
+          var newScale = Math.min(Math.max(currentScale * factor, 0.6), 3.5);
+          window.setZoomScale(newScale);
+          notifyFlutter('zoomChanged', { zoom: newScale });
+        }
+      }, { passive: true });
+
+      gridEl.addEventListener('touchend', function(e) {
+        if (e.touches.length < 2) {
+          initialPinchDist = 0;
+          if (gridEl.style.transform) {
+            var match = gridEl.style.transform.match(/scale\(([^)]+)\)/);
+            if (match) currentScale = parseFloat(match[1]);
+          }
+        }
+      });
+    }
 
     function notifyFlutter(action, payload) {
       var msg = JSON.stringify({ action: action, payload: payload });

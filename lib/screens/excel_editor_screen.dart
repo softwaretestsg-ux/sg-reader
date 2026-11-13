@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../constants/theme.dart';
 import '../models/document_file.dart';
+import '../widgets/zoom_controls_dock.dart';
 
 class ExcelEditorScreen extends StatefulWidget {
   final DocumentFile document;
@@ -18,6 +19,7 @@ class ExcelEditorScreen extends StatefulWidget {
 class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
   late final WebViewController _controller;
   bool _isDocumentLoaded = false;
+  double _currentZoom = 1.0;
 
   @override
   void initState() {
@@ -77,6 +79,12 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
             _isDocumentLoaded = true;
           });
         }
+      } else if (action == 'zoomChanged') {
+        if (mounted && payload['zoom'] != null) {
+          setState(() {
+            _currentZoom = (payload['zoom'] as num).toDouble();
+          });
+        }
       } else if (action == 'save') {
         _saveFileFromBase64(payload['base64']);
       } else if (action == 'error') {
@@ -133,6 +141,14 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
     }
   }
 
+  void _updateZoom(double newZoom) {
+    final clamped = newZoom.clamp(0.6, 3.5);
+    _controller.runJavaScript("window.setZoomScale($clamped);");
+    setState(() {
+      _currentZoom = clamped;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -167,7 +183,25 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
         ],
       ),
       body: SafeArea(
-        child: WebViewWidget(controller: _controller),
+        child: Stack(
+          children: [
+            WebViewWidget(controller: _controller),
+
+            // Floating On-Screen Zoom Dock (+ / - / Reset %)
+            Positioned(
+              bottom: 24,
+              right: 18,
+              child: ZoomControlsDock(
+                currentZoom: _currentZoom,
+                minZoom: 0.6,
+                maxZoom: 3.5,
+                onZoomIn: () => _updateZoom(_currentZoom + 0.2),
+                onZoomOut: () => _updateZoom(_currentZoom - 0.2),
+                onResetZoom: () => _updateZoom(1.0),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
