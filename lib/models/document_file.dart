@@ -96,11 +96,13 @@ class DocumentFile {
     return DocumentType.unknown;
   }
 
-  String get formattedSize {
-    if (sizeInBytes < 1024) return '$sizeInBytes B';
-    if (sizeInBytes < 1024 * 1024) return '${(sizeInBytes / 1024).toStringAsFixed(1)} KB';
-    return '${(sizeInBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  static String formatBytes(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
+
+  String get formattedSize => formatBytes(sizeInBytes);
 
   Map<String, dynamic> toJson() => {
         'path': path,

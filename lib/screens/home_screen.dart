@@ -296,42 +296,202 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showNotificationFeedback({
+    required String title,
+    required String subtitle,
+    bool isError = false,
+    Widget? actionWidget,
+  }) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+        backgroundColor: SGTheme.surface,
+        elevation: 6,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(
+            color: isError ? const Color(0xFFE5534B).withOpacity(0.5) : SGTheme.accentBorder,
+            width: 1.2,
+          ),
+        ),
+        duration: const Duration(seconds: 4),
+        content: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: isError
+                    ? const Color(0xFFE5534B).withOpacity(0.15)
+                    : const Color(0xFF4F7A4A).withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isError ? Icons.error_outline_rounded : Icons.check_circle_rounded,
+                color: isError ? const Color(0xFFE5534B) : const Color(0xFF66BB6A),
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: SGTheme.text,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: SGTheme.textSecondary,
+                      fontSize: 11.5,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            if (actionWidget != null) ...[
+              const SizedBox(width: 8),
+              actionWidget,
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showClearAllConfirmDialog() {
     showDialog(
       context: context,
+      barrierDismissible: true,
       builder: (ctx) => AlertDialog(
         backgroundColor: SGTheme.surface,
-        title: const Text("Clear Recent Documents?", style: TextStyle(color: SGTheme.text, fontWeight: FontWeight.bold)),
-        content: const Text(
-          "This will clear your recent document history in SG Reader. Your original files will remain safely stored on your device.",
-          style: TextStyle(color: SGTheme.textSecondary, fontSize: 13, height: 1.5),
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: SGTheme.borderStrong, width: 1),
         ),
-        actions: [
-          TextButton(
-            child: const Text("Cancel", style: TextStyle(color: SGTheme.textMuted)),
-            onPressed: () => Navigator.pop(ctx),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE5534B),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text("Clear History"),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await _docService.clearRecentDocuments();
-              setState(() {
-                _recentDocs.clear();
-              });
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Recent document history cleared."),
-                  backgroundColor: SGTheme.surface,
-                  duration: Duration(seconds: 2),
+        contentPadding: const EdgeInsets.fromLTRB(22, 22, 22, 16),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: SGTheme.accentSoft,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: SGTheme.accentBorder),
+                  ),
+                  child: const Icon(
+                    Icons.delete_sweep_outlined,
+                    color: SGTheme.accent,
+                    size: 24,
+                  ),
                 ),
-              );
-            },
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        "Clear Recent History?",
+                        style: TextStyle(
+                          color: SGTheme.text,
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        "History Cleanup",
+                        style: TextStyle(
+                          color: SGTheme.accent,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: SGTheme.bgDark,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: SGTheme.border),
+              ),
+              child: const Text(
+                "This will clear your recent document viewing history in SG Reader. Your original files will remain safely stored on your device.",
+                style: TextStyle(
+                  color: SGTheme.textSecondary,
+                  fontSize: 12,
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: SGTheme.borderStrong),
+                    foregroundColor: SGTheme.textSecondary,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text("Cancel", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE5534B),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.clear_all_rounded, size: 16),
+                  label: const Text("Clear All", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    await _docService.clearRecentDocuments();
+                    setState(() {
+                      _recentDocs.clear();
+                    });
+                    _showNotificationFeedback(
+                      title: "History Cleared",
+                      subtitle: "Recent documents history was emptied.",
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -343,19 +503,25 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _recentDocs.removeWhere((d) => d.path == doc.path);
     });
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Removed '${doc.name}' from recents."),
-        backgroundColor: SGTheme.surface,
-        duration: const Duration(seconds: 3),
-        action: SnackBarAction(
-          label: "Undo",
-          textColor: SGTheme.accent,
-          onPressed: () async {
-            await _docService.saveRecentDocument(doc);
-            _loadData();
-          },
+    _showNotificationFeedback(
+      title: "Removed from Recents",
+      subtitle: "'${doc.name}' was removed from history.",
+      actionWidget: InkWell(
+        onTap: () async {
+          await _docService.saveRecentDocument(doc);
+          _loadData();
+        },
+        borderRadius: BorderRadius.circular(6),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Text(
+            "UNDO",
+            style: TextStyle(
+              color: SGTheme.accent,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
         ),
       ),
     );
@@ -405,26 +571,109 @@ class _HomeScreenState extends State<HomeScreen> {
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         backgroundColor: SGTheme.surface,
-        title: const Text(
-          "Device Storage Permission Needed",
-          style: TextStyle(color: SGTheme.accent, fontWeight: FontWeight.bold),
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: SGTheme.borderStrong, width: 1),
         ),
-        content: const Text(
-          "To permanently delete documents from device storage (Downloads, Documents, and SD Card), Android requires 'All files access'.\n\nPlease enable 'Allow access to manage all files' for SG Reader in the next screen.",
-          style: TextStyle(color: SGTheme.textSecondary, fontSize: 13, height: 1.5),
-        ),
-        actions: [
-          TextButton(
-            child: const Text("Cancel", style: TextStyle(color: SGTheme.textMuted)),
-            onPressed: () => Navigator.pop(ctx, false),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: SGTheme.accent,
-              foregroundColor: Colors.white,
+        contentPadding: const EdgeInsets.fromLTRB(22, 22, 22, 16),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: SGTheme.accentSoft,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: SGTheme.accentBorder),
+                  ),
+                  child: const Icon(
+                    Icons.folder_special_outlined,
+                    color: SGTheme.accent,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        "Storage Permission Required",
+                        style: TextStyle(
+                          color: SGTheme.text,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        "Android Device Security",
+                        style: TextStyle(
+                          color: SGTheme.accent,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            child: const Text("Grant Permission"),
-            onPressed: () => Navigator.pop(ctx, true),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: SGTheme.bgDark,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: SGTheme.border),
+              ),
+              child: const Text(
+                "To erase physical files from Downloads or SD card storage, Android requires 'All files access'.\n\n1. Tap 'Continue' below.\n2. Enable 'Allow access to manage all files' for SG Reader.\n3. Return to SG Reader to complete file deletion.",
+                style: TextStyle(
+                  color: SGTheme.textSecondary,
+                  fontSize: 12,
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: SGTheme.borderStrong),
+                    foregroundColor: SGTheme.textSecondary,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text("Not Now", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  onPressed: () => Navigator.pop(ctx, false),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: SGTheme.accent,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                  label: const Text("Continue", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  onPressed: () => Navigator.pop(ctx, true),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -439,56 +688,213 @@ class _HomeScreenState extends State<HomeScreen> {
   void _confirmDeleteFilePermanently(DocumentFile doc) {
     showDialog(
       context: context,
+      barrierDismissible: true,
       builder: (ctx) => AlertDialog(
         backgroundColor: SGTheme.surface,
-        title: const Text("Delete File Permanently?", style: TextStyle(color: Color(0xFFE5534B), fontWeight: FontWeight.bold)),
-        content: Text(
-          "Are you sure you want to permanently delete '${doc.name}' from your device storage? This removes the physical file and cannot be undone.",
-          style: const TextStyle(color: SGTheme.textSecondary, fontSize: 13, height: 1.5),
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: SGTheme.borderStrong, width: 1),
         ),
-        actions: [
-          TextButton(
-            child: const Text("Cancel", style: TextStyle(color: SGTheme.textMuted)),
-            onPressed: () => Navigator.pop(ctx),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE5534B),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text("Delete Permanently"),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              final hasPerm = await _ensureStoragePermission();
-              if (!hasPerm && mounted) {
-                // Check if permission was already granted or requested
-                final recheck = await _docService.hasStoragePermission();
-                if (!recheck) return;
-              }
-
-              try {
-                final success = await _docService.deleteDocumentPermanently(doc);
-                setState(() {
-                  _recentDocs.removeWhere((d) => d.path == doc.path || (doc.originalPath != null && d.originalPath == doc.originalPath));
-                  _selectedDocPaths.remove(doc.path);
-                });
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(success
-                        ? "Permanently deleted '${doc.name}' from device storage."
-                        : "Removed '${doc.name}' from recents."),
-                    backgroundColor: success ? const Color(0xFFE5534B) : SGTheme.surface,
-                    duration: const Duration(seconds: 3),
+        contentPadding: const EdgeInsets.fromLTRB(22, 22, 22, 16),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE5534B).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE5534B).withOpacity(0.3)),
                   ),
-                );
-              } catch (e) {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Error deleting file: $e")),
-                );
-              }
-            },
+                  child: const Icon(
+                    Icons.delete_forever_rounded,
+                    color: Color(0xFFE5534B),
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        "Delete Permanently?",
+                        style: TextStyle(
+                          color: SGTheme.text,
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        "Physical Storage Removal",
+                        style: TextStyle(
+                          color: Color(0xFFE5534B),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+
+            // Document Details Card
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: SGTheme.bgDark,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: SGTheme.border),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: _colorForType(doc.type).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      _iconForType(doc.type),
+                      color: _colorForType(doc.type),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          doc.name,
+                          style: const TextStyle(
+                            color: SGTheme.text,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13.5,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          "${doc.formattedSize} • ${doc.type.name.toUpperCase()} Document",
+                          style: const TextStyle(
+                            color: SGTheme.textMuted,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Warning Notice Box
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE5534B).withOpacity(0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE5534B).withOpacity(0.2)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Padding(
+                    padding: EdgeInsets.only(top: 1),
+                    child: Icon(Icons.warning_amber_rounded, size: 16, color: Color(0xFFE5534B)),
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "This file will be completely erased from your phone's storage. This action is permanent and cannot be undone.",
+                      style: TextStyle(
+                        color: SGTheme.textSecondary,
+                        fontSize: 11.5,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: SGTheme.borderStrong),
+                    foregroundColor: SGTheme.textSecondary,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text(
+                    "Cancel",
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE5534B),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.delete_forever_rounded, size: 16),
+                  label: const Text(
+                    "Delete File",
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    final hasPerm = await _ensureStoragePermission();
+                    if (!hasPerm && mounted) {
+                      final recheck = await _docService.hasStoragePermission();
+                      if (!recheck) return;
+                    }
+
+                    try {
+                      final success = await _docService.deleteDocumentPermanently(doc);
+                      setState(() {
+                        _recentDocs.removeWhere((d) => d.path == doc.path || (doc.originalPath != null && d.originalPath == doc.originalPath));
+                        _selectedDocPaths.remove(doc.path);
+                      });
+                      _showNotificationFeedback(
+                        title: success ? "Permanently Deleted" : "Removed from Recents",
+                        subtitle: success
+                            ? "'${doc.name}' was removed from device storage."
+                            : "'${doc.name}' was removed from recent list.",
+                      );
+                    } catch (e) {
+                      _showNotificationFeedback(
+                        title: "Deletion Failed",
+                        subtitle: "Error deleting file: $e",
+                        isError: true,
+                      );
+                    }
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -499,59 +905,213 @@ class _HomeScreenState extends State<HomeScreen> {
     final selectedDocs = _recentDocs.where((d) => _selectedDocPaths.contains(d.path)).toList();
     if (selectedDocs.isEmpty) return;
 
+    final totalBytes = selectedDocs.fold<int>(0, (sum, d) => sum + d.sizeInBytes);
+    final totalSizeStr = DocumentFile.formatBytes(totalBytes);
+
     showDialog(
       context: context,
+      barrierDismissible: true,
       builder: (ctx) => AlertDialog(
         backgroundColor: SGTheme.surface,
-        title: Text(
-          "Delete ${selectedDocs.length} ${selectedDocs.length == 1 ? 'File' : 'Files'} Permanently?",
-          style: const TextStyle(color: Color(0xFFE5534B), fontWeight: FontWeight.bold),
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: SGTheme.borderStrong, width: 1),
         ),
-        content: Text(
-          "Are you sure you want to permanently delete ${selectedDocs.length} selected ${selectedDocs.length == 1 ? 'file' : 'files'} from your device storage? This removes the physical files and cannot be undone.",
-          style: const TextStyle(color: SGTheme.textSecondary, fontSize: 13, height: 1.5),
-        ),
-        actions: [
-          TextButton(
-            child: const Text("Cancel", style: TextStyle(color: SGTheme.textMuted)),
-            onPressed: () => Navigator.pop(ctx),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE5534B),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text("Delete Permanently"),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              final hasPerm = await _ensureStoragePermission();
-              if (!hasPerm && mounted) {
-                final recheck = await _docService.hasStoragePermission();
-                if (!recheck) return;
-              }
-
-              try {
-                final count = await _docService.deleteMultipleDocumentsPermanently(selectedDocs);
-                final deletedPaths = selectedDocs.map((d) => d.path).toSet();
-                setState(() {
-                  _recentDocs.removeWhere((d) => deletedPaths.contains(d.path));
-                  _exitSelectionMode();
-                });
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("Permanently deleted $count ${count == 1 ? 'file' : 'files'} from storage."),
-                    backgroundColor: const Color(0xFFE5534B),
-                    duration: const Duration(seconds: 3),
+        contentPadding: const EdgeInsets.fromLTRB(22, 22, 22, 16),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE5534B).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE5534B).withOpacity(0.3)),
                   ),
-                );
-              } catch (e) {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Error deleting files: $e")),
-                );
-              }
-            },
+                  child: const Icon(
+                    Icons.delete_sweep_rounded,
+                    color: Color(0xFFE5534B),
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Delete ${selectedDocs.length} ${selectedDocs.length == 1 ? 'File' : 'Files'}?",
+                        style: const TextStyle(
+                          color: SGTheme.text,
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        "Batch Permanent Removal",
+                        style: TextStyle(
+                          color: Color(0xFFE5534B),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+
+            // Summary Card
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: SGTheme.bgDark,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: SGTheme.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "${selectedDocs.length} Documents Selected",
+                        style: const TextStyle(
+                          color: SGTheme.text,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                      Text(
+                        totalSizeStr,
+                        style: const TextStyle(
+                          color: SGTheme.accent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Divider(color: SGTheme.border, height: 1),
+                  const SizedBox(height: 8),
+                  Text(
+                    selectedDocs.take(3).map((d) => "• ${d.name}").join("\n") +
+                        (selectedDocs.length > 3 ? "\n... and ${selectedDocs.length - 3} more" : ""),
+                    style: const TextStyle(
+                      color: SGTheme.textMuted,
+                      fontSize: 11.5,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Warning Notice Box
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE5534B).withOpacity(0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE5534B).withOpacity(0.2)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Padding(
+                    padding: EdgeInsets.only(top: 1),
+                    child: Icon(Icons.warning_amber_rounded, size: 16, color: Color(0xFFE5534B)),
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "All selected files will be permanently erased from your phone's storage. They cannot be recovered.",
+                      style: TextStyle(
+                        color: SGTheme.textSecondary,
+                        fontSize: 11.5,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: SGTheme.borderStrong),
+                    foregroundColor: SGTheme.textSecondary,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text(
+                    "Cancel",
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE5534B),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.delete_forever_rounded, size: 16),
+                  label: Text(
+                    "Delete All (${selectedDocs.length})",
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    final hasPerm = await _ensureStoragePermission();
+                    if (!hasPerm && mounted) {
+                      final recheck = await _docService.hasStoragePermission();
+                      if (!recheck) return;
+                    }
+
+                    try {
+                      final count = await _docService.deleteMultipleDocumentsPermanently(selectedDocs);
+                      final deletedPaths = selectedDocs.map((d) => d.path).toSet();
+                      setState(() {
+                        _recentDocs.removeWhere((d) => deletedPaths.contains(d.path));
+                        _exitSelectionMode();
+                      });
+                      _showNotificationFeedback(
+                        title: "Batch Deletion Complete",
+                        subtitle: "$count ${count == 1 ? 'file' : 'files'} permanently removed from device storage.",
+                      );
+                    } catch (e) {
+                      _showNotificationFeedback(
+                        title: "Deletion Failed",
+                        subtitle: "Error deleting files: $e",
+                        isError: true,
+                      );
+                    }
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -570,13 +1130,9 @@ class _HomeScreenState extends State<HomeScreen> {
       _recentDocs.removeWhere((d) => removedPaths.contains(d.path));
       _exitSelectionMode();
     });
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Removed ${selectedDocs.length} ${selectedDocs.length == 1 ? 'file' : 'files'} from recents."),
-        backgroundColor: SGTheme.surface,
-        duration: const Duration(seconds: 3),
-      ),
+    _showNotificationFeedback(
+      title: "Removed from Recents",
+      subtitle: "${selectedDocs.length} ${selectedDocs.length == 1 ? 'file' : 'files'} removed from history.",
     );
   }
 
@@ -1201,12 +1757,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       Expanded(
                         child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: SGTheme.border),
-                            foregroundColor: SGTheme.text,
+                            side: const BorderSide(color: SGTheme.borderStrong),
+                            foregroundColor: SGTheme.textSecondary,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
-                          icon: const Icon(Icons.close, size: 16),
+                          icon: const Icon(Icons.playlist_remove_rounded, size: 17),
                           label: Text(
                             "Remove Recents (${_selectedDocPaths.length})",
                             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
@@ -1220,10 +1776,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFE5534B),
                             foregroundColor: Colors.white,
+                            elevation: 0,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
-                          icon: const Icon(Icons.delete_forever, size: 16),
+                          icon: const Icon(Icons.delete_forever_rounded, size: 17),
                           label: Text(
                             "Delete (${_selectedDocPaths.length})",
                             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
