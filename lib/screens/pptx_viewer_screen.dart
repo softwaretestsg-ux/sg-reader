@@ -53,7 +53,7 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
   }
 
   void _updateZoom(double newZoom) {
-    final clamped = newZoom.clamp(0.8, 4.0);
+    final clamped = newZoom.clamp(0.35, 4.0);
     final matrix = Matrix4.identity()..scale(clamped);
     _transformationController.value = matrix;
     setState(() {
@@ -261,7 +261,7 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
                         final slideLines = _slides[slideIdx];
                         return InteractiveViewer(
                           transformationController: _transformationController,
-                          minScale: 0.8,
+                          minScale: 0.35,
                           maxScale: 4.0,
                           onInteractionUpdate: (_) {
                             final scale = _transformationController.value.getMaxScaleOnAxis();
@@ -344,7 +344,7 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
                       right: 16,
                       child: ZoomControlsDock(
                         currentZoom: _currentZoom,
-                        minZoom: 0.8,
+                        minZoom: 0.35,
                         maxZoom: 4.0,
                         onZoomIn: () => _updateZoom(_currentZoom + 0.25),
                         onZoomOut: () => _updateZoom(_currentZoom - 0.25),

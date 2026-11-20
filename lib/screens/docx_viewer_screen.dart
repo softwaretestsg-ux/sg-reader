@@ -163,7 +163,7 @@ class _DocxViewerScreenState extends State<DocxViewerScreen> {
   }
 
   void _updateZoom(double newZoom) {
-    final clamped = newZoom.clamp(0.7, 4.0);
+    final clamped = newZoom.clamp(0.35, 4.0);
     _controller.runJavaScript("window.setZoomScale($clamped);");
     setState(() {
       _currentZoom = clamped;
@@ -219,7 +219,7 @@ class _DocxViewerScreenState extends State<DocxViewerScreen> {
               right: 18,
               child: ZoomControlsDock(
                 currentZoom: _currentZoom,
-                minZoom: 0.7,
+                minZoom: 0.35,
                 maxZoom: 4.0,
                 onZoomIn: () => _updateZoom(_currentZoom + 0.2),
                 onZoomOut: () => _updateZoom(_currentZoom - 0.2),

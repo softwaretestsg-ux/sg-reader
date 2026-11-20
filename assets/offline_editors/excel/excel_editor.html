@@ -485,6 +485,7 @@
     };
 
     window.setZoomScale = function(scale) {
+      currentScale = scale;
       var grid = document.getElementById('grid_container');
       if (grid) {
         grid.style.transformOrigin = 'top left';
@@ -506,6 +507,10 @@
             e.touches[0].pageX - e.touches[1].pageX,
             e.touches[0].pageY - e.touches[1].pageY
           );
+          if (gridEl.style.transform) {
+            var match = gridEl.style.transform.match(/scale\(([^)]+)\)/);
+            if (match) currentScale = parseFloat(match[1]);
+          }
         }
       }, { passive: true });
 
@@ -516,8 +521,12 @@
             e.touches[0].pageY - e.touches[1].pageY
           );
           var factor = dist / initialPinchDist;
-          var newScale = Math.min(Math.max(currentScale * factor, 0.6), 3.5);
-          window.setZoomScale(newScale);
+          var newScale = Math.min(Math.max(currentScale * factor, 0.35), 3.5);
+          gridEl.style.transformOrigin = 'top left';
+          gridEl.style.transform = 'scale(' + newScale + ')';
+          gridEl.style.width = (100 / newScale) + '%';
+          gridEl.style.height = (100 / newScale) + '%';
+          gridEl.style.transition = 'none';
           notifyFlutter('zoomChanged', { zoom: newScale });
         }
       }, { passive: true });
@@ -525,6 +534,7 @@
       gridEl.addEventListener('touchend', function(e) {
         if (e.touches.length < 2) {
           initialPinchDist = 0;
+          gridEl.style.transition = 'transform 0.15s ease-out';
           if (gridEl.style.transform) {
             var match = gridEl.style.transform.match(/scale\(([^)]+)\)/);
             if (match) currentScale = parseFloat(match[1]);

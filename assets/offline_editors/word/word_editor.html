@@ -503,6 +503,7 @@
     };
 
     window.setZoomScale = function(scale) {
+      currentScale = scale;
       var sheet = document.getElementById('editor_sheet');
       if (sheet) {
         sheet.style.transformOrigin = 'top center';
@@ -522,6 +523,11 @@
             e.touches[0].pageX - e.touches[1].pageX,
             e.touches[0].pageY - e.touches[1].pageY
           );
+          var sheet = document.getElementById('editor_sheet');
+          if (sheet && sheet.style.transform) {
+            var match = sheet.style.transform.match(/scale\(([^)]+)\)/);
+            if (match) currentScale = parseFloat(match[1]);
+          }
         }
       }, { passive: true });
 
@@ -532,8 +538,13 @@
             e.touches[0].pageY - e.touches[1].pageY
           );
           var factor = dist / initialPinchDist;
-          var newScale = Math.min(Math.max(currentScale * factor, 0.7), 4.0);
-          window.setZoomScale(newScale);
+          var newScale = Math.min(Math.max(currentScale * factor, 0.35), 4.0);
+          var sheet = document.getElementById('editor_sheet');
+          if (sheet) {
+            sheet.style.transformOrigin = 'top center';
+            sheet.style.transform = 'scale(' + newScale + ')';
+            sheet.style.transition = 'none';
+          }
           notifyFlutter('zoomChanged', { zoom: newScale });
         }
       }, { passive: true });
@@ -542,9 +553,12 @@
         if (e.touches.length < 2) {
           initialPinchDist = 0;
           var sheet = document.getElementById('editor_sheet');
-          if (sheet && sheet.style.transform) {
-            var match = sheet.style.transform.match(/scale\(([^)]+)\)/);
-            if (match) currentScale = parseFloat(match[1]);
+          if (sheet) {
+            sheet.style.transition = 'transform 0.15s ease-out';
+            if (sheet.style.transform) {
+              var match = sheet.style.transform.match(/scale\(([^)]+)\)/);
+              if (match) currentScale = parseFloat(match[1]);
+            }
           }
         }
       });

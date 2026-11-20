@@ -142,7 +142,7 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
   }
 
   void _updateZoom(double newZoom) {
-    final clamped = newZoom.clamp(0.6, 3.5);
+    final clamped = newZoom.clamp(0.35, 3.5);
     _controller.runJavaScript("window.setZoomScale($clamped);");
     setState(() {
       _currentZoom = clamped;
@@ -193,7 +193,7 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
               right: 18,
               child: ZoomControlsDock(
                 currentZoom: _currentZoom,
-                minZoom: 0.6,
+                minZoom: 0.35,
                 maxZoom: 3.5,
                 onZoomIn: () => _updateZoom(_currentZoom + 0.2),
                 onZoomOut: () => _updateZoom(_currentZoom - 0.2),

@@ -19,7 +19,7 @@ class ZoomControlsDock extends StatefulWidget {
     required this.onZoomIn,
     required this.onZoomOut,
     required this.onResetZoom,
-    this.minZoom = 0.5,
+    this.minZoom = 0.35,
     this.maxZoom = 5.0,
   }) : super(key: key);
 

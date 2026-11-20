@@ -56,43 +56,41 @@ jobs:
       - name: Build Official Signed Release APK
         run: |
           BUILD_NUM=${{ github.run_number }}
-          flutter build apk --release --build-number=$BUILD_NUM --build-name="1.5.2" --android-skip-build-dependency-validation
+          flutter build apk --release --build-number=$BUILD_NUM --build-name="1.5.3" --android-skip-build-dependency-validation
           cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/SG-Reader.apk"
-          cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/SG-Reader-v1.5.2.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/SG-Reader-v1.5.3.apk"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SG-Reader-v1.5.2-Release
+          name: SG-Reader-v1.5.3-Release
           path: "build/app/outputs/flutter-apk/SG-Reader.apk"
 
       - name: Publish Direct APK Download on GitHub Releases
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main')
         with:
-          tag_name: v1.5.2
-          name: "Social Googol SG Reader (Official Release v1.5.2)"
+          tag_name: v1.5.3
+          name: "Social Googol SG Reader (Official Release v1.5.3)"
           body: |
-            ### 🛡️ Social Googol's SG Reader - Official Android APK (v1.5.2)
+            ### 🛡️ Social Googol's SG Reader - Official Android APK (v1.5.3)
             **Tagline:** Secure to Grow - सुरक्षा से ग्रोथ तक
             **Website:** https://www.socialgoogol.com
             **Helpline:** +91 81262 10003
 
             ---
-            ### 🔄 What's New in v1.5.2:
-            - **Universal Document Zoom Engine (Two-Finger Pinch & On-Screen Dock):**
-              - **PDF Documents:** Native fluid multi-touch pinch-to-zoom up to 500% with double-tap zoom and synchronized floating dock controls.
-              - **Word (.docx):** Dynamic pinch-to-zoom viewport with live bidirectional bridge synchronization and `+` / `−` zoom dock.
-              - **Excel (.xlsx):** Interactive pinch-to-zoom grid inspection and on-screen zoom dock with live zoom percentage reset.
-              - **PowerPoint (.pptx):** Fluid multi-touch `InteractiveViewer` slide canvas with pinch-to-zoom and zoom dock.
-              - **Translucent Floating Zoom Dock:** Auto-fading modern dock with zoom-out (`−`), live zoom percentage chip (tap to reset to 100%), and zoom-in (`+`).
-            - **Executive UI/UX Refinements:**
-              - Clean layout positioning preventing any overlap with bottom actions.
-              - Full backwards compatibility and high-performance offline rendering.
-              - Upgraded to `v1.5.2 • Build 20`.
+            ### 🔄 What's New in v1.5.3:
+            - **Seamless Sub-100% Zoom Engine Across All Documents:**
+              - **Unlocked Zoom Out Below 100%:** All document viewers (PDF, Word, Excel, PowerPoint) now smoothly scale down to 35% for full-page and wide-grid overviews.
+              - **Fluid Zoom In from Below 100%:** Smoothly step up from 35% through 50%, 75%, 100% up to 400%/500% with no lockups or jumps.
+              - **PDF Multi-Touch Sub-100% Scaling:** Integrated raw multi-pointer scaling below 100% combined with vector rendering at >= 100%.
+              - **Word & Excel Live Synchronous Scaling:** Synchronized touchstart scale preservation and 0ms transition during pinch touchmove.
+              - **PowerPoint Slide Canvas:** InteractiveViewer minScale extended to 35% with floating dock synchronization.
+            - **Executive Stability & Versioning:**
+              - Upgraded to `v1.5.3 • Build 21`.
 
             ### 📲 Direct 1-Click APK Download:
             Download the official signed release directly to your Android device below:
           files: |
             build/app/outputs/flutter-apk/SG-Reader.apk
-            build/app/outputs/flutter-apk/SG-Reader-v1.5.2.apk
+            build/app/outputs/flutter-apk/SG-Reader-v1.5.3.apk

@@ -31,6 +31,11 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   final TextEditingController _searchController = TextEditingController();
   PdfTextSearchResult? _searchResult;
 
+  // Multi-touch pinch tracking for sub-100% zoom
+  final Map<int, Offset> _pointerPositions = {};
+  double _initialPinchDistance = 0.0;
+  double _pinchStartZoom = 1.0;
+
   @override
   void initState() {
     super.initState();
@@ -42,6 +47,18 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
     _pdfViewerController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _updateZoom(double newZoom) {
+    final clamped = newZoom.clamp(0.35, 5.0);
+    if (clamped >= 1.0) {
+      _pdfViewerController.zoomLevel = clamped;
+    } else {
+      _pdfViewerController.zoomLevel = 1.0;
+    }
+    setState(() {
+      _currentZoom = clamped;
+    });
   }
 
   void _onSearch(String query) {
@@ -436,16 +453,12 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
           IconButton(
             icon: const Icon(Icons.zoom_in, color: SGTheme.text),
             tooltip: "Zoom In",
-            onPressed: () {
-              _pdfViewerController.zoomLevel = (_pdfViewerController.zoomLevel + 0.25).clamp(1.0, 3.0);
-            },
+            onPressed: () => _updateZoom(_currentZoom + 0.25),
           ),
           IconButton(
             icon: const Icon(Icons.zoom_out, color: SGTheme.text),
             tooltip: "Zoom Out",
-            onPressed: () {
-              _pdfViewerController.zoomLevel = (_pdfViewerController.zoomLevel - 0.25).clamp(1.0, 3.0);
-            },
+            onPressed: () => _updateZoom(_currentZoom - 0.25),
           ),
           IconButton(
             icon: const Icon(Icons.cleaning_services_outlined, color: SGTheme.accent, size: 22),
@@ -490,39 +503,81 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
             )
           : Stack(
               children: [
-                SfPdfViewer.file(
-                  File(widget.document.path),
-                  key: _reloadKey,
-                  controller: _pdfViewerController,
-                  canShowScrollHead: true,
-                  canShowScrollStatus: true,
-                  enableDoubleTapZooming: true,
-                  enableTextSelection: true,
-                  maxZoomLevel: 5.0,
-                  pageLayoutMode: PdfPageLayoutMode.continuous,
-                  scrollDirection: PdfScrollDirection.vertical,
-                  onDocumentLoaded: (PdfDocumentLoadedDetails details) {
-                    setState(() {
-                      _totalPages = details.document.pages.count;
-                      _isLoading = false;
-                    });
+                Listener(
+                  onPointerDown: (event) {
+                    _pointerPositions[event.pointer] = event.position;
+                    if (_pointerPositions.length == 2) {
+                      final keys = _pointerPositions.keys.toList();
+                      _initialPinchDistance = (_pointerPositions[keys[0]]! - _pointerPositions[keys[1]]!).distance;
+                      _pinchStartZoom = _currentZoom;
+                    }
                   },
-                  onZoomLevelChanged: (PdfZoomDetails details) {
-                    setState(() {
-                      _currentZoom = details.newZoomLevel;
-                    });
+                  onPointerMove: (event) {
+                    if (_pointerPositions.containsKey(event.pointer)) {
+                      _pointerPositions[event.pointer] = event.position;
+                    }
+                    if (_pointerPositions.length == 2 && _initialPinchDistance > 10.0) {
+                      final keys = _pointerPositions.keys.toList();
+                      final currentDist = (_pointerPositions[keys[0]]! - _pointerPositions[keys[1]]!).distance;
+                      final ratio = currentDist / _initialPinchDistance;
+                      final targetZoom = (_pinchStartZoom * ratio).clamp(0.35, 5.0);
+                      if (targetZoom < 1.0 || _currentZoom < 1.0) {
+                        _updateZoom(targetZoom);
+                      }
+                    }
                   },
-                  onPageChanged: (PdfPageChangedDetails details) {
-                    setState(() {
-                      _currentPage = details.newPageNumber;
-                    });
+                  onPointerUp: (event) {
+                    _pointerPositions.remove(event.pointer);
+                    if (_pointerPositions.length < 2) {
+                      _initialPinchDistance = 0.0;
+                    }
                   },
-                  onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
-                    setState(() {
-                      _errorMessage = "Unable to render PDF document: ${details.description}";
-                      _isLoading = false;
-                    });
+                  onPointerCancel: (event) {
+                    _pointerPositions.remove(event.pointer);
+                    if (_pointerPositions.length < 2) {
+                      _initialPinchDistance = 0.0;
+                    }
                   },
+                  child: Transform.scale(
+                    scale: _currentZoom < 1.0 ? _currentZoom : 1.0,
+                    alignment: Alignment.topCenter,
+                    child: SfPdfViewer.file(
+                      File(widget.document.path),
+                      key: _reloadKey,
+                      controller: _pdfViewerController,
+                      canShowScrollHead: true,
+                      canShowScrollStatus: true,
+                      enableDoubleTapZooming: true,
+                      enableTextSelection: true,
+                      maxZoomLevel: 5.0,
+                      pageLayoutMode: PdfPageLayoutMode.continuous,
+                      scrollDirection: PdfScrollDirection.vertical,
+                      onDocumentLoaded: (PdfDocumentLoadedDetails details) {
+                        setState(() {
+                          _totalPages = details.document.pages.count;
+                          _isLoading = false;
+                        });
+                      },
+                      onZoomLevelChanged: (PdfZoomDetails details) {
+                        if (details.newZoomLevel >= 1.0) {
+                          setState(() {
+                            _currentZoom = details.newZoomLevel;
+                          });
+                        }
+                      },
+                      onPageChanged: (PdfPageChangedDetails details) {
+                        setState(() {
+                          _currentPage = details.newPageNumber;
+                        });
+                      },
+                      onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
+                        setState(() {
+                          _errorMessage = "Unable to render PDF document: ${details.description}";
+                          _isLoading = false;
+                        });
+                      },
+                    ),
+                  ),
                 ),
 
                 // Floating On-Screen Zoom Dock (+ / - / Reset %)
@@ -531,28 +586,11 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                   right: 18,
                   child: ZoomControlsDock(
                     currentZoom: _currentZoom,
-                    minZoom: 1.0,
+                    minZoom: 0.35,
                     maxZoom: 5.0,
-                    onZoomIn: () {
-                      final newZoom = (_pdfViewerController.zoomLevel + 0.25).clamp(1.0, 5.0);
-                      _pdfViewerController.zoomLevel = newZoom;
-                      setState(() {
-                        _currentZoom = newZoom;
-                      });
-                    },
-                    onZoomOut: () {
-                      final newZoom = (_pdfViewerController.zoomLevel - 0.25).clamp(1.0, 5.0);
-                      _pdfViewerController.zoomLevel = newZoom;
-                      setState(() {
-                        _currentZoom = newZoom;
-                      });
-                    },
-                    onResetZoom: () {
-                      _pdfViewerController.zoomLevel = 1.0;
-                      setState(() {
-                        _currentZoom = 1.0;
-                      });
-                    },
+                    onZoomIn: () => _updateZoom(_currentZoom + 0.25),
+                    onZoomOut: () => _updateZoom(_currentZoom - 0.25),
+                    onResetZoom: () => _updateZoom(1.0),
                   ),
                 ),
               ],
