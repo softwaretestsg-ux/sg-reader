@@ -4,7 +4,6 @@ import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:path_provider/path_provider.dart';
-import '../services/document_service.dart';
 
 /// Result of an Offline OCR text recognition run
 class OcrResult {
@@ -29,7 +28,13 @@ class OcrResult {
 
 /// 100% Offline & Private On-Device Text Recognition Engine
 class OcrService {
-  final DocumentService _docService = DocumentService();
+  Future<Directory> _getStorageDir() async {
+    try {
+      final ext = await getExternalStorageDirectory();
+      if (ext != null) return ext;
+    } catch (_) {}
+    return await getApplicationDocumentsDirectory();
+  }
 
   /// Recognize text from a local image file (Camera photo, scanned document, receipt)
   Future<OcrResult> recognizeTextFromFile(String filePath, {bool devanagariSupport = true}) async {
@@ -115,7 +120,7 @@ class OcrService {
 
   /// Export recognized OCR text into a new Word (.docx) document
   Future<String> exportToDocx(String text, String baseName) async {
-    final docsDir = await _docService.getDefaultDocumentsDir();
+    final docsDir = await _getStorageDir();
     final sanitizedName = baseName.replaceAll(RegExp(r'[^\w\s\.-]'), '_');
     final filePath = "${docsDir.path}/$sanitizedName.docx";
     final file = File(filePath);
@@ -169,7 +174,7 @@ class OcrService {
 
   /// Save recognized OCR text into a plain text (.txt) file
   Future<String> exportToTxt(String text, String baseName) async {
-    final docsDir = await _docService.getDefaultDocumentsDir();
+    final docsDir = await _getStorageDir();
     final sanitizedName = baseName.replaceAll(RegExp(r'[^\w\s\.-]'), '_');
     final filePath = "${docsDir.path}/$sanitizedName.txt";
     final file = File(filePath);
