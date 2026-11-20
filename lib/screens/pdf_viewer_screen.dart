@@ -704,30 +704,29 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                 )
               : _errorMessage != null
                   ? Center(
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline, color: SGTheme.accent, size: 48),
-                    const SizedBox(height: 16),
-                    Text(
-                      _errorMessage!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: SGTheme.textSecondary, fontSize: 14),
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: SGTheme.accentDeep),
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text("Go Back", style: TextStyle(color: Colors.white)),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          : Stack(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline, color: SGTheme.accent, size: 48),
+                            const SizedBox(height: 16),
+                            Text(
+                              _errorMessage!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: SGTheme.textSecondary, fontSize: 14),
+                            ),
+                            const SizedBox(height: 20),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(backgroundColor: SGTheme.accentDeep),
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text("Go Back", style: TextStyle(color: Colors.white)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : Stack(
               children: [
                 Listener(
                   onPointerDown: (event) {
