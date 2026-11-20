@@ -19,6 +19,13 @@ subprojects {
             force 'androidx.fragment:fragment-ktx:1.8.5'
         }
     }
+    afterEvaluate { project ->
+        project.tasks.matching { it.name.contains("Kotlin") }.configureEach {
+            if (it.hasProperty('kotlinOptions')) {
+                it.kotlinOptions.freeCompilerArgs += ['-Xskip-metadata-version-check']
+            }
+        }
+    }
 }
 subprojects {
     project.evaluationDependsOn(":app")
