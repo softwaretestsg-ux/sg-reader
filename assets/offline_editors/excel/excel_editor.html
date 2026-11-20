@@ -543,60 +543,54 @@
       currentScale = scale;
       var grid = document.getElementById('grid_container');
       if (grid) {
-        grid.style.transformOrigin = 'top left';
-        grid.style.transform = 'scale(' + scale + ')';
-        grid.style.width = (100 / scale) + '%';
-        grid.style.height = (100 / scale) + '%';
-        grid.style.transition = 'transform 0.15s ease-out';
+        // In Android WebView (Chromium), style.zoom cleanly scales spreadsheet canvas, coordinates, and headers
+        grid.style.zoom = scale;
       }
     };
 
-    // Pinch-to-zoom support for spreadsheet grid
+    // Pinch-to-zoom support for spreadsheet grid across viewport
     var initialPinchDist = 0;
     var currentScale = 1.0;
-    var gridEl = document.getElementById('grid_container');
-    if (gridEl) {
-      gridEl.addEventListener('touchstart', function(e) {
-        if (e.touches.length === 2) {
-          initialPinchDist = Math.hypot(
-            e.touches[0].pageX - e.touches[1].pageX,
-            e.touches[0].pageY - e.touches[1].pageY
-          );
-          if (gridEl.style.transform) {
-            var match = gridEl.style.transform.match(/scale\(([^)]+)\)/);
-            if (match) currentScale = parseFloat(match[1]);
-          }
-        }
-      }, { passive: true });
 
-      gridEl.addEventListener('touchmove', function(e) {
-        if (e.touches.length === 2 && initialPinchDist > 0) {
-          var dist = Math.hypot(
-            e.touches[0].pageX - e.touches[1].pageX,
-            e.touches[0].pageY - e.touches[1].pageY
-          );
-          var factor = dist / initialPinchDist;
-          var newScale = Math.min(Math.max(currentScale * factor, 0.35), 3.5);
-          gridEl.style.transformOrigin = 'top left';
-          gridEl.style.transform = 'scale(' + newScale + ')';
-          gridEl.style.width = (100 / newScale) + '%';
-          gridEl.style.height = (100 / newScale) + '%';
-          gridEl.style.transition = 'none';
-          notifyFlutter('zoomChanged', { zoom: newScale });
+    window.addEventListener('touchstart', function(e) {
+      if (e.touches.length === 2) {
+        initialPinchDist = Math.hypot(
+          e.touches[0].pageX - e.touches[1].pageX,
+          e.touches[0].pageY - e.touches[1].pageY
+        );
+        var grid = document.getElementById('grid_container');
+        if (grid && grid.style.zoom) {
+          currentScale = parseFloat(grid.style.zoom) || 1.0;
         }
-      }, { passive: true });
+      }
+    }, { passive: true });
 
-      gridEl.addEventListener('touchend', function(e) {
-        if (e.touches.length < 2) {
-          initialPinchDist = 0;
-          gridEl.style.transition = 'transform 0.15s ease-out';
-          if (gridEl.style.transform) {
-            var match = gridEl.style.transform.match(/scale\(([^)]+)\)/);
-            if (match) currentScale = parseFloat(match[1]);
-          }
+    window.addEventListener('touchmove', function(e) {
+      if (e.touches.length === 2 && initialPinchDist > 0) {
+        var dist = Math.hypot(
+          e.touches[0].pageX - e.touches[1].pageX,
+          e.touches[0].pageY - e.touches[1].pageY
+        );
+        var factor = dist / initialPinchDist;
+        var newScale = Math.min(Math.max(currentScale * factor, 0.35), 3.5);
+        var grid = document.getElementById('grid_container');
+        if (grid) {
+          grid.style.zoom = newScale;
         }
-      });
-    }
+        notifyFlutter('zoomChanged', { zoom: newScale });
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchend', function(e) {
+      if (e.touches.length < 2) {
+        initialPinchDist = 0;
+        var grid = document.getElementById('grid_container');
+        if (grid && grid.style.zoom) {
+          currentScale = parseFloat(grid.style.zoom) || 1.0;
+          notifyFlutter('zoomChanged', { zoom: currentScale });
+        }
+      }
+    });
 
     function notifyFlutter(action, payload) {
       var msg = JSON.stringify({ action: action, payload: payload });

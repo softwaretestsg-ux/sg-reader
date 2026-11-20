@@ -21,8 +21,14 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
   bool _hasUnsavedEdits = false;
   int _currentSlideIndex = 0;
   final PageController _pageController = PageController();
-  final TransformationController _transformationController = TransformationController();
   double _currentZoom = 1.0;
+
+  // Multi-touch pinch tracking for real-time finger zoom & pan
+  final Map<int, Offset> _pointerPositions = {};
+  double _initialPinchDistance = 0.0;
+  double _pinchStartZoom = 1.0;
+  Offset _panOffset = Offset.zero;
+  Offset _lastFocalPoint = Offset.zero;
 
   @override
   void initState() {
@@ -48,16 +54,16 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
   @override
   void dispose() {
     _pageController.dispose();
-    _transformationController.dispose();
     super.dispose();
   }
 
   void _updateZoom(double newZoom) {
     final clamped = newZoom.clamp(0.35, 4.0);
-    final matrix = Matrix4.identity()..scale(clamped);
-    _transformationController.value = matrix;
     setState(() {
       _currentZoom = clamped;
+      if (clamped <= 1.0) {
+        _panOffset = Offset.zero;
+      }
     });
   }
 
@@ -220,6 +226,16 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.zoom_in, color: Colors.white),
+            tooltip: "Zoom In (+)",
+            onPressed: () => _updateZoom(_currentZoom + 0.25),
+          ),
+          IconButton(
+            icon: const Icon(Icons.zoom_out, color: Colors.white),
+            tooltip: "Zoom Out (-)",
+            onPressed: () => _updateZoom(_currentZoom - 0.25),
+          ),
+          IconButton(
             icon: Icon(
               _hasUnsavedEdits ? Icons.save : Icons.save_outlined,
               color: Colors.white,
@@ -255,130 +271,169 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
                 )
               : Stack(
                   children: [
-                    PageView.builder(
-                      controller: _pageController,
-                      itemCount: _slides.length,
-                      onPageChanged: (idx) {
-                        setState(() {
-                          _currentSlideIndex = idx;
-                          _transformationController.value = Matrix4.identity();
-                          _currentZoom = 1.0;
-                        });
+                    Listener(
+                      behavior: HitTestBehavior.translucent,
+                      onPointerDown: (event) {
+                        _pointerPositions[event.pointer] = event.position;
+                        if (_pointerPositions.length == 2) {
+                          final keys = _pointerPositions.keys.toList();
+                          _initialPinchDistance = (_pointerPositions[keys[0]]! - _pointerPositions[keys[1]]!).distance;
+                          _pinchStartZoom = _currentZoom;
+                        } else if (_pointerPositions.length == 1 && _currentZoom > 1.05) {
+                          _lastFocalPoint = event.position;
+                        }
                       },
-                      itemBuilder: (ctx, slideIdx) {
-                        final slideLines = _slides[slideIdx];
-                        return InteractiveViewer(
-                          transformationController: _transformationController,
-                          minScale: 0.35,
-                          maxScale: 4.0,
-                          onInteractionUpdate: (_) {
-                            final scale = _transformationController.value.getMaxScaleOnAxis();
-                            if ((scale - _currentZoom).abs() > 0.02) {
-                              setState(() {
-                                _currentZoom = scale;
-                              });
-                            }
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-                            child: Center(
-                              child: AspectRatio(
-                                aspectRatio: 16 / 9,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: const Color(0xFFD1D1D1), width: 1),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.12),
-                                        blurRadius: 18,
-                                        offset: const Offset(0, 5),
-                                        spreadRadius: 1,
-                                      ),
-                                    ],
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(20.0),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFC43E1C),
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                "SLIDE ${slideIdx + 1} OF ${_slides.length}",
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  letterSpacing: 0.5,
+                      onPointerMove: (event) {
+                        if (_pointerPositions.containsKey(event.pointer)) {
+                          _pointerPositions[event.pointer] = event.position;
+                        }
+                        if (_pointerPositions.length == 2 && _initialPinchDistance > 10.0) {
+                          final keys = _pointerPositions.keys.toList();
+                          final currentDist = (_pointerPositions[keys[0]]! - _pointerPositions[keys[1]]!).distance;
+                          final ratio = currentDist / _initialPinchDistance;
+                          final targetZoom = (_pinchStartZoom * ratio).clamp(0.35, 4.0);
+                          _updateZoom(targetZoom);
+                        } else if (_pointerPositions.length == 1 && _currentZoom > 1.05) {
+                          final delta = event.position - _lastFocalPoint;
+                          _lastFocalPoint = event.position;
+                          setState(() {
+                            _panOffset += delta;
+                          });
+                        }
+                      },
+                      onPointerUp: (event) {
+                        _pointerPositions.remove(event.pointer);
+                        if (_pointerPositions.length < 2) {
+                          _initialPinchDistance = 0.0;
+                        }
+                      },
+                      onPointerCancel: (event) {
+                        _pointerPositions.remove(event.pointer);
+                        if (_pointerPositions.length < 2) {
+                          _initialPinchDistance = 0.0;
+                        }
+                      },
+                      child: PageView.builder(
+                        controller: _pageController,
+                        physics: _currentZoom > 1.05
+                            ? const NeverScrollableScrollPhysics()
+                            : const PageScrollPhysics(),
+                        itemCount: _slides.length,
+                        onPageChanged: (idx) {
+                          setState(() {
+                            _currentSlideIndex = idx;
+                            _currentZoom = 1.0;
+                            _panOffset = Offset.zero;
+                          });
+                        },
+                        itemBuilder: (ctx, slideIdx) {
+                          final slideLines = _slides[slideIdx];
+                          return Transform(
+                            alignment: Alignment.center,
+                            transform: Matrix4.identity()
+                              ..translate(_panOffset.dx, _panOffset.dy)
+                              ..scale(_currentZoom),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+                              child: Center(
+                                child: AspectRatio(
+                                  aspectRatio: 16 / 9,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: const Color(0xFFD1D1D1), width: 1),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.12),
+                                          blurRadius: 18,
+                                          offset: const Offset(0, 5),
+                                          spreadRadius: 1,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(20.0),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFC43E1C),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  "SLIDE ${slideIdx + 1} OF ${_slides.length}",
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                    letterSpacing: 0.5,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                            const Icon(Icons.slideshow_outlined, color: Color(0xFFC43E1C), size: 20),
-                                          ],
-                                        ),
-                                        const Divider(color: Color(0xFFEDEBE9), height: 18, thickness: 1),
-                                        Expanded(
-                                          child: ListView.builder(
-                                            itemCount: slideLines.length,
-                                            itemBuilder: (ctx, lineIdx) {
-                                              final line = slideLines[lineIdx];
-                                              final isHeading = lineIdx == 0;
-                                              return InkWell(
-                                                onTap: () => _editSlideLine(slideIdx, lineIdx, line),
-                                                borderRadius: BorderRadius.circular(4),
-                                                child: Padding(
-                                                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
-                                                  child: Row(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      if (!isHeading)
-                                                        const Padding(
-                                                          padding: EdgeInsets.only(top: 4, right: 8),
+                                              const Icon(Icons.slideshow_outlined, color: Color(0xFFC43E1C), size: 20),
+                                            ],
+                                          ),
+                                          const Divider(color: Color(0xFFEDEBE9), height: 18, thickness: 1),
+                                          Expanded(
+                                            child: ListView.builder(
+                                              itemCount: slideLines.length,
+                                              itemBuilder: (ctx, lineIdx) {
+                                                final line = slideLines[lineIdx];
+                                                final isHeading = lineIdx == 0;
+                                                return InkWell(
+                                                  onTap: () => _editSlideLine(slideIdx, lineIdx, line),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+                                                    child: Row(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        if (!isHeading)
+                                                          const Padding(
+                                                            padding: EdgeInsets.only(top: 4, right: 8),
+                                                            child: Text(
+                                                              "•",
+                                                              style: TextStyle(
+                                                                color: Color(0xFFC43E1C),
+                                                                fontSize: 16,
+                                                                fontWeight: FontWeight.bold,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        Expanded(
                                                           child: Text(
-                                                            "•",
+                                                            line,
                                                             style: TextStyle(
-                                                              color: Color(0xFFC43E1C),
-                                                              fontSize: 16,
-                                                              fontWeight: FontWeight.bold,
+                                                              color: isHeading ? const Color(0xFFC43E1C) : const Color(0xFF242424),
+                                                              fontSize: isHeading ? 17 : 14,
+                                                              fontWeight: isHeading ? FontWeight.bold : FontWeight.w400,
+                                                              height: 1.4,
                                                             ),
                                                           ),
                                                         ),
-                                                      Expanded(
-                                                        child: Text(
-                                                          line,
-                                                          style: TextStyle(
-                                                            color: isHeading ? const Color(0xFFC43E1C) : const Color(0xFF242424),
-                                                            fontSize: isHeading ? 17 : 14,
-                                                            fontWeight: isHeading ? FontWeight.bold : FontWeight.w400,
-                                                            height: 1.4,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
+                                                      ],
+                                                    ),
                                                   ),
-                                                ),
-                                              );
-                                            },
+                                                );
+                                              },
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
                     Positioned(
                       bottom: 24,
@@ -388,6 +443,12 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
                         minZoom: 0.35,
                         maxZoom: 4.0,
                         onZoomIn: () => _updateZoom(_currentZoom + 0.25),
+                        onZoomOut: () => _updateZoom(_currentZoom - 0.25),
+                        onResetZoom: () => _updateZoom(1.0),
+                      ),
+                    ),
+                  ],
+                ),
                         onZoomOut: () => _updateZoom(_currentZoom - 0.25),
                         onResetZoom: () => _updateZoom(1.0),
                       ),

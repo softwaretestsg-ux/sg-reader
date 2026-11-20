@@ -141,6 +141,11 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
     }
   }
 
+  // Multi-touch pinch tracking for real-time finger zoom
+  final Map<int, Offset> _pointerPositions = {};
+  double _initialPinchDistance = 0.0;
+  double _pinchStartZoom = 1.0;
+
   void _updateZoom(double newZoom) {
     final clamped = newZoom.clamp(0.35, 3.5);
     _controller.runJavaScript("window.setZoomScale($clamped);");
@@ -173,6 +178,16 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.zoom_in, color: Colors.white),
+            tooltip: "Zoom In (+)",
+            onPressed: () => _updateZoom(_currentZoom + 0.25),
+          ),
+          IconButton(
+            icon: const Icon(Icons.zoom_out, color: Colors.white),
+            tooltip: "Zoom Out (-)",
+            onPressed: () => _updateZoom(_currentZoom - 0.25),
+          ),
+          IconButton(
             icon: const Icon(Icons.save_outlined, color: Colors.white),
             tooltip: "Save Spreadsheet",
             onPressed: _triggerSave,
@@ -187,7 +202,42 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            WebViewWidget(controller: _controller),
+            Listener(
+              behavior: HitTestBehavior.translucent,
+              onPointerDown: (event) {
+                _pointerPositions[event.pointer] = event.position;
+                if (_pointerPositions.length == 2) {
+                  final keys = _pointerPositions.keys.toList();
+                  _initialPinchDistance = (_pointerPositions[keys[0]]! - _pointerPositions[keys[1]]!).distance;
+                  _pinchStartZoom = _currentZoom;
+                }
+              },
+              onPointerMove: (event) {
+                if (_pointerPositions.containsKey(event.pointer)) {
+                  _pointerPositions[event.pointer] = event.position;
+                }
+                if (_pointerPositions.length == 2 && _initialPinchDistance > 10.0) {
+                  final keys = _pointerPositions.keys.toList();
+                  final currentDist = (_pointerPositions[keys[0]]! - _pointerPositions[keys[1]]!).distance;
+                  final ratio = currentDist / _initialPinchDistance;
+                  final targetZoom = (_pinchStartZoom * ratio).clamp(0.35, 3.5);
+                  _updateZoom(targetZoom);
+                }
+              },
+              onPointerUp: (event) {
+                _pointerPositions.remove(event.pointer);
+                if (_pointerPositions.length < 2) {
+                  _initialPinchDistance = 0.0;
+                }
+              },
+              onPointerCancel: (event) {
+                _pointerPositions.remove(event.pointer);
+                if (_pointerPositions.length < 2) {
+                  _initialPinchDistance = 0.0;
+                }
+              },
+              child: WebViewWidget(controller: _controller),
+            ),
 
             // Floating On-Screen Zoom Dock (+ / - / Reset %)
             Positioned(
@@ -197,8 +247,8 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
                 currentZoom: _currentZoom,
                 minZoom: 0.35,
                 maxZoom: 3.5,
-                onZoomIn: () => _updateZoom(_currentZoom + 0.2),
-                onZoomOut: () => _updateZoom(_currentZoom - 0.2),
+                onZoomIn: () => _updateZoom(_currentZoom + 0.25),
+                onZoomOut: () => _updateZoom(_currentZoom - 0.25),
                 onResetZoom: () => _updateZoom(1.0),
               ),
             ),
