@@ -436,11 +436,6 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
   }
-          ],
-        ),
-      ),
-    );
-  }
 
   void _showNotificationFeedback({
     required String title,

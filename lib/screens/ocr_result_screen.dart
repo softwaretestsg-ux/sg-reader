@@ -89,9 +89,9 @@ class _OcrResultScreenState extends State<OcrResultScreen> {
       final doc = DocumentFile(
         path: path,
         name: "$baseName.docx",
-        extension: "docx",
-        size: File(path).lengthSync(),
-        lastModified: DateTime.now(),
+        sizeInBytes: File(path).lengthSync(),
+        type: DocumentType.word,
+        lastOpened: DateTime.now(),
       );
 
       Navigator.push(
