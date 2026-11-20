@@ -385,12 +385,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _runOcrFromImageSource(ImageSource source) async {
+    bool dialogShowing = false;
     try {
       final picker = ImagePicker();
       final photo = await picker.pickImage(source: source);
       if (photo == null || !mounted) return;
 
       // Show processing dialog
+      dialogShowing = true;
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -410,13 +412,16 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-      );
+      ).then((_) => dialogShowing = false);
 
       final ocrService = OcrService();
       final result = await ocrService.recognizeTextFromFile(photo.path);
 
       if (mounted) {
-        Navigator.pop(context); // Close loading dialog
+        if (dialogShowing) {
+          Navigator.of(context, rootNavigator: true).pop();
+          dialogShowing = false;
+        }
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -429,9 +434,12 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       if (mounted) {
-        Navigator.pop(context);
+        if (dialogShowing) {
+          Navigator.of(context, rootNavigator: true).pop();
+          dialogShowing = false;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("OCR processing error: $e")),
+          SnackBar(content: Text("OCR Notice: $e")),
         );
       }
     }

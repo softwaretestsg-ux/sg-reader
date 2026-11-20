@@ -152,31 +152,33 @@ class _ExcelEditorScreenState extends State<ExcelEditorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: SGTheme.bgDark,
+      backgroundColor: const Color(0xFFF3F2F1),
       appBar: AppBar(
-        backgroundColor: SGTheme.surface,
+        backgroundColor: const Color(0xFF107C41),
+        foregroundColor: Colors.white,
+        elevation: 1,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               widget.document.name,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: SGTheme.text),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
               overflow: TextOverflow.ellipsis,
             ),
             const Text(
-              "Spreadsheet Suite (XLS, XLSX, CSV • Formula Engine)",
-              style: TextStyle(fontSize: 11, color: SGTheme.accent),
+              "Microsoft Excel (.xlsx, .xls, .csv)",
+              style: TextStyle(fontSize: 11, color: Color(0xFFD0F0DC), fontWeight: FontWeight.w500),
             ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.save_outlined, color: SGTheme.accent),
+            icon: const Icon(Icons.save_outlined, color: Colors.white),
             tooltip: "Save Spreadsheet",
             onPressed: _triggerSave,
           ),
           IconButton(
-            icon: const Icon(Icons.share_outlined, color: SGTheme.textSecondary),
+            icon: const Icon(Icons.share_outlined, color: Colors.white),
             tooltip: "Share Spreadsheet",
             onPressed: _shareSpreadsheet,
           ),

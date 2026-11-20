@@ -56,42 +56,44 @@ jobs:
       - name: Build Official Signed Release APK
         run: |
           BUILD_NUM=${{ github.run_number }}
-          flutter build apk --release --build-number=$BUILD_NUM --build-name="1.6.0" --android-skip-build-dependency-validation
+          flutter build apk --release --build-number=$BUILD_NUM --build-name="1.6.1" --android-skip-build-dependency-validation
           cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/SG-Reader.apk"
-          cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/SG-Reader-v1.6.0.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/SG-Reader-v1.6.1.apk"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SG-Reader-v1.6.0-Release
+          name: SG-Reader-v1.6.1-Release
           path: "build/app/outputs/flutter-apk/SG-Reader.apk"
 
       - name: Publish Direct APK Download on GitHub Releases
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main')
         with:
-          tag_name: v1.6.0
-          name: "Social Googol SG Reader (Official Release v1.6.0)"
+          tag_name: v1.6.1
+          name: "Social Googol SG Reader (Official Release v1.6.1)"
           body: |
-            ### 🛡️ Social Googol's SG Reader - Official Android APK (v1.6.0)
+            ### 🛡️ Social Googol's SG Reader - Official Android APK (v1.6.1)
             **Tagline:** Secure to Grow - सुरक्षा से ग्रोथ तक
             **Website:** https://www.socialgoogol.com
             **Helpline:** +91 81262 10003
 
             ---
-            ### 🔄 What's New in v1.6.0:
-            - **100% Offline Neural OCR Engine (Optical Character Recognition):**
-              - **Bilingual On-Device Recognition:** Extracts text locally with zero cloud calls in both English (Latin) and Hindi (Devanagari script).
-              - **Interactive OCR Result Screen:** Full paragraph viewing, live word/character statistics, and text editing.
-              - **1-Tap Actions:** Copy all text to clipboard with haptic feedback, share via standard Android share sheet.
-              - **Word Processor & Plain Text Integration:** Export extracted text directly to editable Word (.docx) or .txt documents.
-              - **Scanner & Home Screen Integration:** Trigger OCR directly from document scans, camera captures, or gallery imports.
-            - **Document Zoom & Performance:**
-              - Retains sub-100% zoom scaling down to 35% across PDF, Word, Excel, and PowerPoint.
-              - Upgraded to `v1.6.0 • Build 22`.
+            ### 🔄 What's New in v1.6.1:
+            - **Native OCR Crash Elimination & Stability Shield:**
+              - Added native ML Kit Devanagari model dependency (`com.google.mlkit:text-recognition-devanagari:16.0.1`) resolving ClassNotFoundException.
+              - Added ProGuard rules preserving Google ML Kit internal interfaces in release builds.
+              - Dual-layer guarded OCR execution: if Devanagari engine fails or models are missing, gracefully falls back to Latin recognition without stopping or crashing the app.
+              - Guaranteed modal safety: scanning/processing dialogs safely dismiss with state tracking, preventing frozen or black UI overlays.
+            - **Authentic Microsoft Office Look & Feel Across Word, Excel & PowerPoint:**
+              - **Microsoft Word (.docx):** Signature Word Blue (`#185ABD`) AppBar, clean Office ribbon toolbar, authentic A4 page sheet canvas with realistic paper drop shadow, and Calibri/Segoe UI typography.
+              - **Microsoft Excel (.xlsx, .xls, .csv):** Signature Excel Green (`#107C41`) AppBar and header, classic formula bar with italic `fx` icon and active coordinate indicator (`A1`), and authentic bottom sheet tabs (`Sheet1`, `Sheet2` with Excel green active indicator).
+              - **Microsoft PowerPoint (.pptx):** Signature PowerPoint Orange-Red (`#C43E1C`) AppBar, 16:9 widescreen presentation slide canvas with realistic drop shadow, slide numbering badge, and bullet typography.
+            - **Version Bump:**
+              - Updated to `v1.6.1 • Build 23`.
 
             ### 📲 Direct 1-Click APK Download:
             Download the official signed release directly to your Android device below:
           files: |
             build/app/outputs/flutter-apk/SG-Reader.apk
-            build/app/outputs/flutter-apk/SG-Reader-v1.6.0.apk
+            build/app/outputs/flutter-apk/SG-Reader-v1.6.1.apk

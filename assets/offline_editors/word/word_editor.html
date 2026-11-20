@@ -21,28 +21,30 @@
       overflow: hidden;
     }
 
-    /* Top Sub-Header */
+    /* Microsoft Word Authentic Brand Theme */
     #top_header {
-      background-color: #1F1913;
-      border-bottom: 1px solid #2E251E;
-      padding: 8px 12px;
+      background-color: #185ABD;
+      border-bottom: 1px solid #104A9B;
+      padding: 8px 14px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       z-index: 100;
       flex-shrink: 0;
+      color: #FFFFFF;
     }
     .badge {
-      background-color: #2E2218;
-      border: 1px solid #B04A24;
-      color: #DD8B53;
+      background-color: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      color: #FFFFFF;
       padding: 3px 8px;
-      border-radius: 6px;
+      border-radius: 4px;
       font-size: 11px;
       font-weight: bold;
+      letter-spacing: 0.5px;
     }
     #doc_metrics {
-      color: #A89F91;
+      color: #E2ECF9;
       font-size: 12px;
       font-weight: 500;
       overflow: hidden;
@@ -51,27 +53,30 @@
       max-width: 55vw;
     }
     .btn-save {
-      background-color: #B04A24;
+      background-color: #2B579A;
       color: #FFFFFF;
-      border: none;
+      border: 1px solid rgba(255, 255, 255, 0.4);
       padding: 6px 14px;
-      border-radius: 6px;
+      border-radius: 4px;
       font-size: 12px;
       font-weight: bold;
       cursor: pointer;
-    }
-    .btn-save:active {
-      background-color: #DD8B53;
-    }
-
-    /* Formatting Toolbar */
-    #toolbar_container {
-      background-color: #241D17;
-      border-bottom: 1px solid #362A1F;
-      padding: 6px 8px;
       display: flex;
       align-items: center;
       gap: 5px;
+    }
+    .btn-save:active {
+      background-color: #0E3E85;
+    }
+
+    /* Word Ribbon Toolbar */
+    #toolbar_container {
+      background-color: #F3F2F1;
+      border-bottom: 1px solid #D2D0CE;
+      padding: 6px 10px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
       overflow-x: auto;
       white-space: nowrap;
       scrollbar-width: none;
@@ -82,35 +87,36 @@
       display: none;
     }
     .t-btn {
-      background: #1B1510;
-      border: 1px solid #362A1F;
-      color: #F2ECE1;
-      padding: 6px 12px;
-      border-radius: 6px;
+      background: #FFFFFF;
+      border: 1px solid #D2D0CE;
+      color: #323130;
+      padding: 6px 11px;
+      border-radius: 4px;
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
-      min-width: 34px;
+      min-width: 32px;
       text-align: center;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
     .t-btn:active, .t-btn.active {
-      background: #B04A24;
-      color: #FFFFFF;
-      border-color: #DD8B53;
+      background: #E1DFDD;
+      color: #185ABD;
+      border-color: #185ABD;
     }
     .t-sep {
       width: 1px;
       height: 20px;
-      background: #3D3126;
+      background: #D2D0CE;
       margin: 0 4px;
       display: inline-block;
     }
 
     /* Quick Inline Action Bar */
     #quick_actions_bar {
-      background-color: #2D231B;
-      border-bottom: 1px solid #B04A24;
-      padding: 6px 10px;
+      background-color: #FAF9F8;
+      border-bottom: 1px solid #E1DFDD;
+      padding: 5px 10px;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -124,27 +130,27 @@
       display: none;
     }
     .action-btn {
-      background-color: #171310;
-      border: 1px solid #3D3126;
-      color: #DD8B53;
-      padding: 5px 11px;
-      border-radius: 6px;
-      font-size: 12px;
+      background-color: #FFFFFF;
+      border: 1px solid #D2D0CE;
+      color: #185ABD;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11.5px;
       font-weight: 600;
       cursor: pointer;
     }
     .action-btn:active {
-      background-color: #B04A24;
+      background-color: #185ABD;
       color: #FFFFFF;
     }
 
-    /* Outer Scroll Wrapper - Document Desk (NO flex column collapse) */
+    /* Outer Scroll Wrapper - Document Desk */
     #editor_wrapper {
       flex: 1;
       overflow-y: auto;
       overflow-x: hidden;
-      background-color: #ECE8E1;
-      padding: 16px 10px 100px 10px;
+      background-color: #EAE9E7;
+      padding: 20px 12px 100px 12px;
       -webkit-overflow-scrolling: touch;
       display: block;
     }
@@ -158,13 +164,14 @@
       min-height: calc(100vh - 140px);
       height: auto !important;
       background-color: #FFFFFF !important;
-      color: #1A1A1A !important;
-      padding: 28px 22px;
-      border-radius: 6px;
-      box-shadow: 0 3px 14px rgba(0, 0, 0, 0.15);
+      color: #242424 !important;
+      padding: 42px 36px;
+      border-radius: 2px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.2);
       outline: none;
+      font-family: "Calibri", "Aptos", "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif;
       font-size: 15.5px;
-      line-height: 1.65;
+      line-height: 1.5;
       display: block;
       overflow: visible;
       word-break: break-word;
@@ -188,27 +195,29 @@
     #document_canvas em,
     #document_canvas b,
     #document_canvas i {
-      color: #1A1A1A !important;
+      color: #242424 !important;
     }
 
     #document_canvas p {
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       min-height: 1.2em;
     }
 
     #document_canvas h1 {
       font-size: 24px;
-      margin: 20px 0 10px 0;
-      color: #111111 !important;
-      border-bottom: 1px solid #E2DDD5;
+      margin: 22px 0 10px 0;
+      color: #185ABD !important;
+      border-bottom: 2px solid #E1DFDD;
       padding-bottom: 6px;
+      font-weight: 600;
     }
     #document_canvas h2 {
       font-size: 19px;
-      margin: 16px 0 8px 0;
-      color: #B04A24 !important;
-      border-bottom: 1px solid #EDE8E1;
+      margin: 18px 0 8px 0;
+      color: #2B579A !important;
+      border-bottom: 1px solid #EDEBE9;
       padding-bottom: 4px;
+      font-weight: 600;
     }
     #document_canvas h3 {
       font-size: 17px;

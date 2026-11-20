@@ -64,32 +64,42 @@ class OcrService {
 
   /// Internal processor running Latin and optionally Devanagari recognition
   Future<OcrResult> _processInputImage(InputImage inputImage, {String? filePath, bool devanagariSupport = true}) async {
-    // 1. Primary Latin Recognizer
-    final latinRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
-    RecognizedText latinText;
-    try {
-      latinText = await latinRecognizer.processImage(inputImage);
-    } finally {
-      await latinRecognizer.close();
-    }
-
-    String extractedText = latinText.text;
+    String extractedText = "";
     bool hasDevanagari = false;
 
-    // 2. If Devanagari (Hindi) is enabled, check with Devanagari recognizer if Latin yielded sparse text
-    if (devanagariSupport) {
-      final devanagariRecognizer = TextRecognizer(script: TextRecognitionScript.devanagiri);
+    // 1. Primary Latin Recognizer with bulletproof error shielding
+    TextRecognizer? latinRecognizer;
+    try {
+      latinRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+      final latinText = await latinRecognizer.processImage(inputImage);
+      extractedText = latinText.text;
+    } catch (e) {
+      debugPrint("Latin OCR pass notice: $e");
+      extractedText = "";
+    } finally {
       try {
+        await latinRecognizer?.close();
+      } catch (_) {}
+    }
+
+    // 2. Secondary Devanagari (Hindi) Recognizer with safe fallback
+    if (devanagariSupport) {
+      TextRecognizer? devanagariRecognizer;
+      try {
+        devanagariRecognizer = TextRecognizer(script: TextRecognitionScript.devanagiri);
         final devaText = await devanagariRecognizer.processImage(inputImage);
-        // If Devanagari captured more text or contains Hindi characters
         if (devaText.text.trim().isNotEmpty && _containsDevanagari(devaText.text)) {
           extractedText = devaText.text;
           hasDevanagari = true;
+        } else if (extractedText.trim().isEmpty && devaText.text.trim().isNotEmpty) {
+          extractedText = devaText.text;
         }
       } catch (e) {
-        debugPrint("Devanagari OCR pass error (non-fatal): $e");
+        debugPrint("Devanagari OCR pass notice (safely handled): $e");
       } finally {
-        await devanagariRecognizer.close();
+        try {
+          await devanagariRecognizer?.close();
+        } catch (_) {}
       }
     }
 

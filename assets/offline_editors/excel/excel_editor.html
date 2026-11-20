@@ -12,47 +12,56 @@
       padding: 0;
     }
     body {
-      background-color: #171310;
-      color: #F2ECE1;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #F3F2F1;
+      color: #242424;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       overflow: hidden;
       display: flex;
       flex-direction: column;
       height: 100vh;
       width: 100vw;
     }
+    /* Microsoft Excel Ribbon Header */
     #top_header {
-      background-color: #1F1913;
-      border-bottom: 1px solid #2E251E;
+      background-color: #107C41;
+      border-bottom: 1px solid #0C5A2F;
       padding: 8px 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       z-index: 10;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
     }
     .badge {
-      background-color: #2E2218;
-      border: 1px solid #B04A24;
-      color: #DD8B53;
+      background-color: #0C5A2F;
+      border: 1px solid rgba(255,255,255,0.35);
+      color: #FFFFFF;
       padding: 3px 8px;
-      border-radius: 6px;
+      border-radius: 4px;
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 700;
+      letter-spacing: 0.5px;
     }
     .btn-save {
-      background-color: #B04A24;
-      color: #FFFFFF;
+      background-color: #FFFFFF;
+      color: #107C41;
       border: none;
       padding: 6px 14px;
-      border-radius: 6px;
+      border-radius: 4px;
       font-size: 12px;
-      font-weight: bold;
+      font-weight: 700;
       cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+      transition: background 0.2s;
     }
-    /* Touch-Friendly Cell & Formula Bar */
+    .btn-save:active {
+      background-color: #E1DFDD;
+    }
+
+    /* Microsoft Excel Formula & Cell Bar */
     #cell_editor_bar {
-      background-color: #261F18;
-      border-bottom: 1px solid #3D3126;
+      background-color: #F3F2F1;
+      border-bottom: 1px solid #D1D1D1;
       padding: 6px 10px;
       display: flex;
       flex-direction: column;
@@ -65,29 +74,41 @@
       gap: 8px;
     }
     #active_cell_badge {
-      background-color: #171310;
-      border: 1px solid #B04A24;
-      color: #DD8B53;
+      background-color: #FFFFFF;
+      border: 1px solid #C8C6C4;
+      color: #201F1E;
       padding: 4px 8px;
-      border-radius: 4px;
-      font-family: monospace;
+      border-radius: 3px;
+      font-family: 'Segoe UI', Calibri, monospace;
       font-size: 13px;
-      font-weight: bold;
+      font-weight: 700;
       min-width: 48px;
       text-align: center;
+      box-shadow: inset 0 1px 1px rgba(0,0,0,0.04);
+    }
+    .formula-fx-symbol {
+      color: #107C41;
+      font-weight: bold;
+      font-style: italic;
+      font-family: 'Times New Roman', serif;
+      font-size: 16px;
+      padding: 0 2px;
+      user-select: none;
     }
     #cell_input {
       flex: 1;
-      background-color: #171310;
-      border: 1px solid #3D3126;
-      color: #FFFFFF;
+      background-color: #FFFFFF;
+      border: 1px solid #8A8886;
+      color: #201F1E;
       padding: 6px 10px;
-      border-radius: 6px;
-      font-size: 14px;
+      border-radius: 3px;
+      font-size: 13px;
       outline: none;
+      font-family: 'Segoe UI', Calibri, sans-serif;
     }
     #cell_input:focus {
-      border-color: #DD8B53;
+      border-color: #107C41;
+      box-shadow: 0 0 0 1px #107C41;
     }
     .action-strip {
       display: flex;
@@ -100,19 +121,23 @@
       display: none;
     }
     .cell-btn {
-      background-color: #1F1913;
-      border: 1px solid #3D3126;
-      color: #F2ECE1;
+      background-color: #FFFFFF;
+      border: 1px solid #D1D1D1;
+      color: #323130;
       padding: 5px 10px;
-      border-radius: 6px;
+      border-radius: 3px;
       font-size: 12px;
       font-weight: 500;
+      font-family: 'Segoe UI', Calibri, sans-serif;
       cursor: pointer;
       white-space: nowrap;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+      transition: all 0.15s ease;
     }
     .cell-btn:active {
-      background-color: #B04A24;
+      background-color: #107C41;
       color: #FFFFFF;
+      border-color: #107C41;
     }
     #grid_container {
       flex: 1;
@@ -124,14 +149,43 @@
     .x-spreadsheet {
       height: 100% !important;
       width: 100% !important;
+      font-family: 'Segoe UI', Calibri, Arial, sans-serif !important;
     }
+
+    /* Microsoft Excel Authentic Sheet Tabs & Bottom Bar */
+    .x-spreadsheet-bottombar {
+      background: #EDEBE9 !important;
+      border-top: 1px solid #D1D1D1 !important;
+    }
+    .x-spreadsheet-bottombar .x-spreadsheet-menu > li {
+      color: #323130 !important;
+      font-family: 'Segoe UI', Calibri, -apple-system, sans-serif !important;
+      font-size: 12px !important;
+      font-weight: 500 !important;
+      border-right: 1px solid #D1D1D1 !important;
+    }
+    .x-spreadsheet-bottombar .x-spreadsheet-menu > li.active {
+      background-color: #FFFFFF !important;
+      color: #107C41 !important;
+      border-top: 3px solid #107C41 !important;
+      font-weight: 700 !important;
+    }
+    .x-spreadsheet-toolbar {
+      background: #F3F2F1 !important;
+      border-bottom: 1px solid #E1DFDD !important;
+    }
+    .x-spreadsheet-toolbar-btn:hover, .x-spreadsheet-toolbar-btn.active {
+      background: #E1DFDD !important;
+      border-color: #107C41 !important;
+    }
+
     #loading_overlay {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: #171310;
+      background: #FFFFFF;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -139,12 +193,12 @@
       z-index: 9999;
     }
     .spinner {
-      border: 4px solid #2E251E;
-      border-top: 4px solid #DD8B53;
+      border: 4px solid #EDEBE9;
+      border-top: 4px solid #107C41;
       border-radius: 50%;
-      width: 38px;
-      height: 38px;
-      animation: spin 1s linear infinite;
+      width: 40px;
+      height: 40px;
+      animation: spin 0.9s linear infinite;
     }
     @keyframes spin {
       0% { transform: rotate(0deg); }
@@ -156,7 +210,7 @@
   <div id="top_header">
     <div style="display:flex; align-items:center; gap:8px;">
       <span class="badge" id="doc_format_badge">EXCEL</span>
-      <span id="doc_meta" style="color:#A89F91; font-size:12px;">Spreadsheet Suite</span>
+      <span id="doc_meta" style="color:#D0F0DC; font-size:12px; font-weight:500;">Microsoft Excel Worksheet</span>
     </div>
     <button class="btn-save" onclick="saveDocument()">Save File</button>
   </div>
@@ -165,7 +219,8 @@
   <div id="cell_editor_bar">
     <div class="formula-row">
       <span id="active_cell_badge">A1</span>
-      <input type="text" id="cell_input" placeholder="Tap any cell to edit value or =formula..." oninput="onCellInputChanged(this.value)">
+      <span class="formula-fx-symbol">fx</span>
+      <input type="text" id="cell_input" placeholder="Tap cell to edit value or enter formula..." oninput="onCellInputChanged(this.value)">
     </div>
     <div class="action-strip">
       <button class="cell-btn" onclick="insertRowBelow()">+ Row Below</button>
@@ -181,8 +236,8 @@
 
   <div id="loading_overlay">
     <div class="spinner"></div>
-    <div style="margin-top:14px; color:#DD8B53; font-weight:600; font-size:14px;">Opening All Pages & Sheets...</div>
-    <div style="margin-top:6px; color:#A89F91; font-size:11px;">100% On-Device Processing</div>
+    <div style="margin-top:14px; color:#107C41; font-weight:700; font-size:14px; font-family:'Segoe UI',sans-serif;">Opening Excel Spreadsheet...</div>
+    <div style="margin-top:6px; color:#605E5C; font-size:11px; font-family:'Segoe UI',sans-serif;">100% Offline Secure Engine</div>
   </div>
 
   <script src="xlsx.full.min.js"></script>

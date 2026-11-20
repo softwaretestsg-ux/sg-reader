@@ -80,33 +80,36 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: SGTheme.surface,
+        backgroundColor: Colors.white,
         title: Text(
           "Edit Line ${lineIdx + 1} (Slide ${slideIdx + 1})",
-          style: const TextStyle(color: SGTheme.text, fontSize: 16),
+          style: const TextStyle(color: Color(0xFF242424), fontSize: 16, fontWeight: FontWeight.bold),
         ),
         content: TextField(
           controller: textController,
           autofocus: true,
           maxLines: 4,
-          style: const TextStyle(color: SGTheme.text),
+          style: const TextStyle(color: Color(0xFF242424)),
           decoration: InputDecoration(
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             labelText: "Slide Text",
-            labelStyle: const TextStyle(color: SGTheme.textSecondary),
+            labelStyle: const TextStyle(color: Color(0xFF605E5C)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: SGTheme.accent),
+              borderSide: const BorderSide(color: Color(0xFFC43E1C), width: 2),
             ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel", style: TextStyle(color: SGTheme.textMuted)),
+            child: const Text("Cancel", style: TextStyle(color: Color(0xFF605E5C))),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: SGTheme.accentDeep),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFC43E1C),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            ),
             onPressed: () async {
               final newText = textController.text;
               Navigator.pop(ctx);
@@ -124,7 +127,7 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
                 ),
               );
             },
-            child: const Text("Save", style: TextStyle(color: Colors.white)),
+            child: const Text("Save", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -137,32 +140,35 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: SGTheme.surface,
+        backgroundColor: Colors.white,
         title: Text(
           "Add Line to Slide ${_currentSlideIndex + 1}",
-          style: const TextStyle(color: SGTheme.text, fontSize: 16),
+          style: const TextStyle(color: Color(0xFF242424), fontSize: 16, fontWeight: FontWeight.bold),
         ),
         content: TextField(
           controller: textController,
           autofocus: true,
-          style: const TextStyle(color: SGTheme.text),
+          style: const TextStyle(color: Color(0xFF242424)),
           decoration: InputDecoration(
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             labelText: "New Line / Bullet",
-            labelStyle: const TextStyle(color: SGTheme.textSecondary),
+            labelStyle: const TextStyle(color: Color(0xFF605E5C)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: SGTheme.accent),
+              borderSide: const BorderSide(color: Color(0xFFC43E1C), width: 2),
             ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel", style: TextStyle(color: SGTheme.textMuted)),
+            child: const Text("Cancel", style: TextStyle(color: Color(0xFF605E5C))),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: SGTheme.accentDeep),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFC43E1C),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            ),
             onPressed: () async {
               final newText = textController.text.trim();
               Navigator.pop(ctx);
@@ -182,7 +188,7 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
                 const SnackBar(content: Text("Line added and slide saved.")),
               );
             },
-            child: const Text("Add & Save", style: TextStyle(color: Colors.white)),
+            child: const Text("Add & Save", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -192,21 +198,23 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: SGTheme.bgDark,
+      backgroundColor: const Color(0xFFEAE9E7),
       appBar: AppBar(
-        backgroundColor: SGTheme.surface,
+        backgroundColor: const Color(0xFFC43E1C),
+        foregroundColor: Colors.white,
+        elevation: 1,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               widget.document.name,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: SGTheme.text),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
               overflow: TextOverflow.ellipsis,
             ),
             if (_slides.isNotEmpty)
               Text(
-                "Slide ${_currentSlideIndex + 1} of ${_slides.length} (Tap text to edit)",
-                style: const TextStyle(fontSize: 11, color: SGTheme.accent),
+                "Slide ${_currentSlideIndex + 1} of ${_slides.length} • Microsoft PowerPoint",
+                style: const TextStyle(fontSize: 11, color: Color(0xFFFFD8CC), fontWeight: FontWeight.w500),
               ),
           ],
         ),
@@ -214,7 +222,7 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
           IconButton(
             icon: Icon(
               _hasUnsavedEdits ? Icons.save : Icons.save_outlined,
-              color: _hasUnsavedEdits ? SGTheme.accent : SGTheme.textSecondary,
+              color: Colors.white,
             ),
             tooltip: "Save Presentation",
             onPressed: () async {
@@ -233,17 +241,17 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.share_outlined, color: SGTheme.accent),
+            icon: const Icon(Icons.share_outlined, color: Colors.white),
             tooltip: "Share Presentation",
             onPressed: _sharePresentation,
           ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: SGTheme.accent))
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFC43E1C)))
           : _slides.isEmpty
               ? const Center(
-                  child: Text("No slide content detected in presentation.", style: TextStyle(color: SGTheme.textSecondary)),
+                  child: Text("No slide content detected in presentation.", style: TextStyle(color: Color(0xFF605E5C))),
                 )
               : Stack(
                   children: [
@@ -272,66 +280,99 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
                             }
                           },
                           child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Card(
-                              color: SGTheme.surface,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                side: const BorderSide(color: SGTheme.border),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(22.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+                            child: Center(
+                              child: AspectRatio(
+                                aspectRatio: 16 / 9,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: const Color(0xFFD1D1D1), width: 1),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.12),
+                                        blurRadius: 18,
+                                        offset: const Offset(0, 5),
+                                        spreadRadius: 1,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(20.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: SGTheme.accentDeep,
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Text(
-                                            "SLIDE ${slideIdx + 1}",
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                        const Icon(Icons.slideshow_outlined, color: SGTheme.textMuted),
-                                      ],
-                                    ),
-                                    const Divider(color: SGTheme.border, height: 24),
-                                    Expanded(
-                                      child: ListView.builder(
-                                        itemCount: slideLines.length,
-                                        itemBuilder: (ctx, lineIdx) {
-                                          final line = slideLines[lineIdx];
-                                          final isHeading = lineIdx == 0;
-                                          return InkWell(
-                                            onTap: () => _editSlideLine(slideIdx, lineIdx, line),
-                                            borderRadius: BorderRadius.circular(6),
-                                            child: Padding(
-                                              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFC43E1C),
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
                                               child: Text(
-                                                line,
-                                                style: TextStyle(
-                                                  color: isHeading ? SGTheme.accent : SGTheme.text,
-                                                  fontSize: isHeading ? 17 : 14,
-                                                  fontWeight: isHeading ? FontWeight.bold : FontWeight.normal,
-                                                  height: 1.45,
+                                                "SLIDE ${slideIdx + 1} OF ${_slides.length}",
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  letterSpacing: 0.5,
                                                 ),
                                               ),
                                             ),
-                                          );
-                                        },
-                                      ),
+                                            const Icon(Icons.slideshow_outlined, color: Color(0xFFC43E1C), size: 20),
+                                          ],
+                                        ),
+                                        const Divider(color: Color(0xFFEDEBE9), height: 18, thickness: 1),
+                                        Expanded(
+                                          child: ListView.builder(
+                                            itemCount: slideLines.length,
+                                            itemBuilder: (ctx, lineIdx) {
+                                              final line = slideLines[lineIdx];
+                                              final isHeading = lineIdx == 0;
+                                              return InkWell(
+                                                onTap: () => _editSlideLine(slideIdx, lineIdx, line),
+                                                borderRadius: BorderRadius.circular(4),
+                                                child: Padding(
+                                                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+                                                  child: Row(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      if (!isHeading)
+                                                        const Padding(
+                                                          padding: EdgeInsets.only(top: 4, right: 8),
+                                                          child: Text(
+                                                            "•",
+                                                            style: TextStyle(
+                                                              color: Color(0xFFC43E1C),
+                                                              fontSize: 16,
+                                                              fontWeight: FontWeight.bold,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      Expanded(
+                                                        child: Text(
+                                                          line,
+                                                          style: TextStyle(
+                                                            color: isHeading ? const Color(0xFFC43E1C) : const Color(0xFF242424),
+                                                            fontSize: isHeading ? 17 : 14,
+                                                            fontWeight: isHeading ? FontWeight.bold : FontWeight.w400,
+                                                            height: 1.4,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -355,7 +396,7 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
                 ),
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: SGTheme.accentDeep,
+        backgroundColor: const Color(0xFFC43E1C),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text("Add Bullet", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         onPressed: _addBulletToSlide,

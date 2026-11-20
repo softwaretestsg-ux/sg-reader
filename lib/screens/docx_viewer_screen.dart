@@ -173,36 +173,37 @@ class _DocxViewerScreenState extends State<DocxViewerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: SGTheme.bgDark,
+      backgroundColor: const Color(0xFFEAE9E7),
       appBar: AppBar(
-        backgroundColor: SGTheme.surface,
+        backgroundColor: const Color(0xFF185ABD),
+        iconTheme: const IconThemeData(color: Colors.white),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               widget.document.name,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: SGTheme.text),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
               overflow: TextOverflow.ellipsis,
             ),
             const Text(
-              "Word Processor (DOCX • Rich Text WYSIWYG)",
-              style: TextStyle(fontSize: 11, color: SGTheme.accent),
+              "Microsoft Word (.docx)",
+              style: TextStyle(fontSize: 11, color: Color(0xFFE2ECF9)),
             ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.cleaning_services_outlined, color: SGTheme.accent),
+            icon: const Icon(Icons.cleaning_services_outlined, color: Colors.white),
             tooltip: "Remove Watermark from Word Document",
             onPressed: _cleanDocxWatermark,
           ),
           IconButton(
-            icon: const Icon(Icons.save_outlined, color: SGTheme.accent),
+            icon: const Icon(Icons.save_outlined, color: Colors.white),
             tooltip: "Save Word Document",
             onPressed: _triggerSave,
           ),
           IconButton(
-            icon: const Icon(Icons.share_outlined, color: SGTheme.textSecondary),
+            icon: const Icon(Icons.share_outlined, color: Colors.white),
             tooltip: "Share Word Document",
             onPressed: _shareDocument,
           ),
