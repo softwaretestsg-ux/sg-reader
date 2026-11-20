@@ -1,7 +1,7 @@
 name: sg_reader
 description: "Social Googol's SG Reader - Secure, Lightweight Document Reader & Editor for Android."
 publish_to: "none"
-version: 1.5.3+21
+version: 1.6.0+22
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -27,6 +27,9 @@ dependencies:
   excel: ^4.0.3
   archive: ^3.4.10
   xml: ^6.5.0
+
+  # Machine Learning & Offline OCR (100% On-Device)
+  google_mlkit_text_recognition: ^0.14.0
 
   # Iconography
   cupertino_icons: ^1.0.6

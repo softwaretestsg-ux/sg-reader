@@ -56,41 +56,42 @@ jobs:
       - name: Build Official Signed Release APK
         run: |
           BUILD_NUM=${{ github.run_number }}
-          flutter build apk --release --build-number=$BUILD_NUM --build-name="1.5.3" --android-skip-build-dependency-validation
+          flutter build apk --release --build-number=$BUILD_NUM --build-name="1.6.0" --android-skip-build-dependency-validation
           cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/SG-Reader.apk"
-          cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/SG-Reader-v1.5.3.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/SG-Reader-v1.6.0.apk"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SG-Reader-v1.5.3-Release
+          name: SG-Reader-v1.6.0-Release
           path: "build/app/outputs/flutter-apk/SG-Reader.apk"
 
       - name: Publish Direct APK Download on GitHub Releases
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main')
         with:
-          tag_name: v1.5.3
-          name: "Social Googol SG Reader (Official Release v1.5.3)"
+          tag_name: v1.6.0
+          name: "Social Googol SG Reader (Official Release v1.6.0)"
           body: |
-            ### 🛡️ Social Googol's SG Reader - Official Android APK (v1.5.3)
+            ### 🛡️ Social Googol's SG Reader - Official Android APK (v1.6.0)
             **Tagline:** Secure to Grow - सुरक्षा से ग्रोथ तक
             **Website:** https://www.socialgoogol.com
             **Helpline:** +91 81262 10003
 
             ---
-            ### 🔄 What's New in v1.5.3:
-            - **Seamless Sub-100% Zoom Engine Across All Documents:**
-              - **Unlocked Zoom Out Below 100%:** All document viewers (PDF, Word, Excel, PowerPoint) now smoothly scale down to 35% for full-page and wide-grid overviews.
-              - **Fluid Zoom In from Below 100%:** Smoothly step up from 35% through 50%, 75%, 100% up to 400%/500% with no lockups or jumps.
-              - **PDF Multi-Touch Sub-100% Scaling:** Integrated raw multi-pointer scaling below 100% combined with vector rendering at >= 100%.
-              - **Word & Excel Live Synchronous Scaling:** Synchronized touchstart scale preservation and 0ms transition during pinch touchmove.
-              - **PowerPoint Slide Canvas:** InteractiveViewer minScale extended to 35% with floating dock synchronization.
-            - **Executive Stability & Versioning:**
-              - Upgraded to `v1.5.3 • Build 21`.
+            ### 🔄 What's New in v1.6.0:
+            - **100% Offline Neural OCR Engine (Optical Character Recognition):**
+              - **Bilingual On-Device Recognition:** Extracts text locally with zero cloud calls in both English (Latin) and Hindi (Devanagari script).
+              - **Interactive OCR Result Screen:** Full paragraph viewing, live word/character statistics, and text editing.
+              - **1-Tap Actions:** Copy all text to clipboard with haptic feedback, share via standard Android share sheet.
+              - **Word Processor & Plain Text Integration:** Export extracted text directly to editable Word (.docx) or .txt documents.
+              - **Scanner & Home Screen Integration:** Trigger OCR directly from document scans, camera captures, or gallery imports.
+            - **Document Zoom & Performance:**
+              - Retains sub-100% zoom scaling down to 35% across PDF, Word, Excel, and PowerPoint.
+              - Upgraded to `v1.6.0 • Build 22`.
 
             ### 📲 Direct 1-Click APK Download:
             Download the official signed release directly to your Android device below:
           files: |
             build/app/outputs/flutter-apk/SG-Reader.apk
-            build/app/outputs/flutter-apk/SG-Reader-v1.5.3.apk
+            build/app/outputs/flutter-apk/SG-Reader-v1.6.0.apk

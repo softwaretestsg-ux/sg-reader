@@ -12,6 +12,8 @@ import '../widgets/perspective_cropper.dart';
 import '../widgets/watermark_eraser_dialog.dart';
 import 'docx_viewer_screen.dart';
 import 'pdf_viewer_screen.dart';
+import '../services/ocr_service.dart';
+import 'ocr_result_screen.dart';
 
 class ScannerScreen extends StatefulWidget {
   final ScannedPage initialPage;
@@ -131,6 +133,32 @@ class _ScannerScreenState extends State<ScannerScreen> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("✨ Watermark removed from current page!")),
+      );
+    }
+  }
+
+  Future<void> _runOcrOnCurrentPage() async {
+    setState(() => _isProcessingFilter = true);
+    try {
+      final ocrService = OcrService();
+      final result = await ocrService.recognizeTextFromBytes(_currentPage.processedBytes);
+      if (!mounted) return;
+      setState(() => _isProcessingFilter = false);
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OcrResultScreen(
+            result: result,
+            title: "OCR Page ${_currentPageIndex + 1}",
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isProcessingFilter = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error performing OCR: $e")),
       );
     }
   }
@@ -526,6 +554,11 @@ class _ScannerScreenState extends State<ScannerScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.text_snippet_outlined, color: SGTheme.accent),
+            tooltip: "Extract Text (OCR)",
+            onPressed: _runOcrOnCurrentPage,
+          ),
+          IconButton(
             icon: const Icon(Icons.crop_outlined, color: SGTheme.accent),
             tooltip: "Adjust 4 Corners & Dewarp",
             onPressed: _openCropper,
@@ -695,6 +728,18 @@ class _ScannerScreenState extends State<ScannerScreen> {
                     icon: const Icon(Icons.add_photo_alternate_outlined),
                     tooltip: "Add Page from Gallery",
                     onPressed: _addPageFromGallery,
+                  ),
+                  const SizedBox(width: 8),
+
+                  // Extract Text (OCR)
+                  IconButton(
+                    style: IconButton.styleFrom(
+                      backgroundColor: SGTheme.surface,
+                      foregroundColor: SGTheme.accent,
+                    ),
+                    icon: const Icon(Icons.text_snippet_outlined),
+                    tooltip: "Extract Text (OCR)",
+                    onPressed: _runOcrOnCurrentPage,
                   ),
                   const SizedBox(width: 12),
 

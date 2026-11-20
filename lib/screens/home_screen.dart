@@ -15,6 +15,9 @@ import 'pptx_viewer_screen.dart';
 import 'about_screen.dart';
 import 'scanner_screen.dart';
 import '../services/scanner_service.dart';
+import '../services/ocr_service.dart';
+import 'ocr_result_screen.dart';
+import 'package:image_picker/image_picker.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -290,6 +293,149 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
               },
             ),
+            const SizedBox(height: 12),
+            ListTile(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              tileColor: SGTheme.bgDark,
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4CAF50).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.document_scanner, color: Color(0xFF4CAF50)),
+              ),
+              title: const Text("Extract Text (OCR)", style: TextStyle(color: SGTheme.text, fontWeight: FontWeight.w600)),
+              subtitle: const Text("Extract text from camera/photo (English & Hindi)", style: TextStyle(color: SGTheme.textSecondary, fontSize: 11)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _launchOcrPicker();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _launchOcrPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: SGTheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "OCR Text Extractor",
+              style: TextStyle(color: SGTheme.text, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              "100% Offline • On-Device Neural Recognition (English & Hindi)",
+              style: TextStyle(color: SGTheme.textSecondary, fontSize: 12),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              tileColor: SGTheme.bgDark,
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: SGTheme.accent.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.camera_alt_outlined, color: SGTheme.accent),
+              ),
+              title: const Text("Capture Document with Camera", style: TextStyle(color: SGTheme.text, fontWeight: FontWeight.w600)),
+              subtitle: const Text("Photograph any bill, paper, or contract for OCR", style: TextStyle(color: SGTheme.textSecondary, fontSize: 11)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                _runOcrFromImageSource(ImageSource.camera);
+              },
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              tileColor: SGTheme.bgDark,
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4A7EBB).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.photo_library_outlined, color: Color(0xFF4A7EBB)),
+              ),
+              title: const Text("Select Photo from Gallery", style: TextStyle(color: SGTheme.text, fontWeight: FontWeight.w600)),
+              subtitle: const Text("Pick an existing image, screenshot, or receipt", style: TextStyle(color: SGTheme.textSecondary, fontSize: 11)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                _runOcrFromImageSource(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _runOcrFromImageSource(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final photo = await picker.pickImage(source: source);
+      if (photo == null || !mounted) return;
+
+      // Show processing dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => AlertDialog(
+          backgroundColor: SGTheme.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          content: const Row(
+            children: [
+              CircularProgressIndicator(color: SGTheme.accent),
+              SizedBox(width: 20),
+              Expanded(
+                child: Text(
+                  "Extracting text offline...",
+                  style: TextStyle(color: SGTheme.text, fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final ocrService = OcrService();
+      final result = await ocrService.recognizeTextFromFile(photo.path);
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OcrResultScreen(
+              result: result,
+              title: "OCR Scan Results",
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("OCR processing error: $e")),
+        );
+      }
+    }
+  }
           ],
         ),
       ),
@@ -1272,6 +1418,15 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: () {
                 Navigator.pop(context);
                 _launchDocumentScanner();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.text_snippet_outlined, color: SGTheme.accent),
+              title: const Text("OCR Text Extractor", style: TextStyle(color: SGTheme.text, fontWeight: FontWeight.bold)),
+              subtitle: const Text("100% offline text extraction (English & Hindi)", style: TextStyle(color: SGTheme.textSecondary, fontSize: 11)),
+              onTap: () {
+                Navigator.pop(context);
+                _launchOcrPicker();
               },
             ),
             ListTile(

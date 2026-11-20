@@ -14,6 +14,7 @@ import 'package:sg_reader/services/scanner_export_service.dart';
 import 'package:sg_reader/services/update_service.dart';
 import 'package:sg_reader/services/security_service.dart';
 import 'package:sg_reader/services/watermark_service.dart';
+import 'package:sg_reader/services/ocr_service.dart';
 import 'package:sg_reader/constants/branding.dart';
 import 'package:sg_reader/models/document_file.dart';
 
@@ -300,9 +301,24 @@ void main() {
     // -------------------------------------------------------------
     test('UpdateService: Version code dynamically synchronizes with BrandConstants', () {
       expect(UpdateService.currentVersionCode, BrandConstants.buildNumber);
-      expect(UpdateService.currentVersionCode, 21);
-      expect(BrandConstants.appVersion, "1.5.3");
-      expect(BrandConstants.fullVersionDisplay, "v1.5.3 • Build 21");
+      expect(UpdateService.currentVersionCode, 22);
+      expect(BrandConstants.appVersion, "1.6.0");
+      expect(BrandConstants.fullVersionDisplay, "v1.6.0 • Build 22");
+    });
+
+    test('OcrResult: Bilingual text extraction and word statistics modeling', () {
+      final sampleResult = OcrResult(
+        fullText: "Social Googol SG Reader\nसुरक्षा से ग्रोथ तक",
+        lines: ["Social Googol SG Reader", "सुरक्षा से ग्रोथ तक"],
+        wordCount: 8,
+        charCount: 44,
+        isDevanagari: true,
+      );
+
+      expect(sampleResult.isEmpty, false);
+      expect(sampleResult.isDevanagari, true);
+      expect(sampleResult.wordCount, 8);
+      expect(sampleResult.lines.length, 2);
     });
 
     test('BrandConstants: Bilingual tagline and identity integrity', () {
