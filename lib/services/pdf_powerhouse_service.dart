@@ -56,6 +56,7 @@ class PdfPowerhouseService {
   Future<DocumentFile> mergePdfs({
     required List<String> inputPaths,
     String? mergedFileName,
+    String? customOutputPath,
   }) async {
     if (inputPaths.length < 2) {
       throw Exception("At least 2 PDF files are required for merging.");
@@ -83,9 +84,15 @@ class PdfPowerhouseService {
     final mergedBytes = await outputPdf.save();
     outputPdf.dispose();
 
-    final appDir = await getApplicationDocumentsDirectory();
-    final finalName = mergedFileName ?? 'Merged_Document_${DateTime.now().millisecondsSinceEpoch}.pdf';
-    final savedPath = '${appDir.path}/$finalName';
+    String savedPath;
+    String finalName = mergedFileName ?? 'Merged_Document_${DateTime.now().millisecondsSinceEpoch}.pdf';
+
+    if (customOutputPath != null) {
+      savedPath = customOutputPath;
+    } else {
+      final appDir = await getApplicationDocumentsDirectory();
+      savedPath = '${appDir.path}/$finalName';
+    }
 
     final mergedFile = File(savedPath);
     await mergedFile.writeAsBytes(mergedBytes, flush: true);
@@ -104,6 +111,7 @@ class PdfPowerhouseService {
     required String inputPath,
     required List<int> pageIndices,
     String? outputFileName,
+    String? customOutputPath,
   }) async {
     final file = File(inputPath);
     if (!await file.exists()) {
@@ -127,9 +135,15 @@ class PdfPowerhouseService {
     srcDoc.dispose();
     outputPdf.dispose();
 
-    final appDir = await getApplicationDocumentsDirectory();
-    final name = outputFileName ?? 'Extracted_Pages_${DateTime.now().millisecondsSinceEpoch}.pdf';
-    final savedPath = '${appDir.path}/$name';
+    String savedPath;
+    String name = outputFileName ?? 'Extracted_Pages_${DateTime.now().millisecondsSinceEpoch}.pdf';
+
+    if (customOutputPath != null) {
+      savedPath = customOutputPath;
+    } else {
+      final appDir = await getApplicationDocumentsDirectory();
+      savedPath = '${appDir.path}/$name';
+    }
 
     final outputFile = File(savedPath);
     await outputFile.writeAsBytes(extractedBytes, flush: true);
@@ -144,7 +158,7 @@ class PdfPowerhouseService {
   }
 
   /// Smart PDF Compressor: optimizes PDF streams and downsamples images
-  Future<DocumentFile> compressPdf(String inputPath) async {
+  Future<DocumentFile> compressPdf(String inputPath, {String? customOutputPath}) async {
     final file = File(inputPath);
     if (!await file.exists()) {
       throw Exception("Target PDF does not exist.");
@@ -159,10 +173,16 @@ class PdfPowerhouseService {
     final compressedBytes = await document.save();
     document.dispose();
 
-    final appDir = await getApplicationDocumentsDirectory();
+    String savedPath;
     final baseName = file.uri.pathSegments.last.replaceAll('.pdf', '');
     final name = '${baseName}_compressed_${DateTime.now().millisecondsSinceEpoch}.pdf';
-    final savedPath = '${appDir.path}/$name';
+
+    if (customOutputPath != null) {
+      savedPath = customOutputPath;
+    } else {
+      final appDir = await getApplicationDocumentsDirectory();
+      savedPath = '${appDir.path}/$name';
+    }
 
     final outputFile = File(savedPath);
     await outputFile.writeAsBytes(compressedBytes, flush: true);

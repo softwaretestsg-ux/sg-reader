@@ -20,6 +20,7 @@ import 'package:sg_reader/constants/branding.dart';
 import 'package:sg_reader/models/document_file.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late Directory tempDir;
   late DocumentService docService;
 
@@ -597,6 +598,7 @@ void main() {
       final mergedDoc = await powerhouse.mergePdfs(
         inputPaths: [pdf1File.path, pdf2File.path],
         mergedFileName: 'merged_test.pdf',
+        customOutputPath: '${tempDir.path}/merged_test.pdf',
       );
       expect(File(mergedDoc.path).existsSync(), true);
 
@@ -615,6 +617,7 @@ void main() {
         inputPath: mergedDoc.path,
         pageIndices: [0],
         outputFileName: 'split_page1.pdf',
+        customOutputPath: '${tempDir.path}/split_page1.pdf',
       );
       expect(File(splitDoc.path).existsSync(), true);
       final verifiedSplit = PdfDocument(inputBytes: await File(splitDoc.path).readAsBytes());
@@ -622,7 +625,10 @@ void main() {
       verifiedSplit.dispose();
 
       // 4. Test Compress PDF
-      final compressedDoc = await powerhouse.compressPdf(mergedDoc.path);
+      final compressedDoc = await powerhouse.compressPdf(
+        mergedDoc.path,
+        customOutputPath: '${tempDir.path}/compressed_test.pdf',
+      );
       expect(File(compressedDoc.path).existsSync(), true);
     });
   });
