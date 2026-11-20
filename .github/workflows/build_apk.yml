@@ -56,43 +56,45 @@ jobs:
       - name: Build Official Signed Release APK
         run: |
           BUILD_NUM=${{ github.run_number }}
-          flutter build apk --release --build-number=$BUILD_NUM --build-name="1.6.2" --android-skip-build-dependency-validation
+          flutter build apk --release --build-number=$BUILD_NUM --build-name="1.7.0" --android-skip-build-dependency-validation
           cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/SG-Reader.apk"
-          cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/SG-Reader-v1.6.2.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/SG-Reader-v1.7.0.apk"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SG-Reader-v1.6.2-Release
+          name: SG-Reader-v1.7.0-Release
           path: "build/app/outputs/flutter-apk/SG-Reader.apk"
 
       - name: Publish Direct APK Download on GitHub Releases
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main')
         with:
-          tag_name: v1.6.2
-          name: "Social Googol SG Reader (Official Release v1.6.2)"
+          tag_name: v1.7.0
+          name: "Social Googol SG Reader (Major Release v1.7.0 - Top 5 Powerhouse)"
           body: |
-            ### 🛡️ Social Googol's SG Reader - Official Android APK (v1.6.2)
+            ### 🛡️ Social Googol's SG Reader - Official Android APK (v1.7.0)
             **Tagline:** Secure to Grow - सुरक्षा से ग्रोथ तक
             **Website:** https://www.socialgoogol.com
             **Helpline:** +91 81262 10003
 
             ---
-            ### 🔄 What's New in v1.6.2:
-            - **Universal Zoom Architecture Across Word, Excel & PowerPoint:**
-              - **Word (.docx):** Fixed element target mismatch (`document_canvas` & `editor_wrapper`), enabled horizontal overflow scrolling, and added multi-touch pointer listeners for seamless two-finger pinch-to-zoom and on-screen dock zoom (35% to 400%).
-              - **Excel (.xlsx, .xls, .csv):** Eliminated flexbox distortion bug (`100/scale %`) in favor of native Chromium `style.zoom`, delivering crisp, distortion-free zoom across all cells, headers, formula bar, and sheet tabs with two-finger pinch and dock synchronization.
-              - **PowerPoint (.pptx):** Replaced constrained `InteractiveViewer` with native centered `Transform` scaling and panning; horizontal swiping is intelligently locked when zoomed in so users can pan across slides without triggering accidental page transitions.
-              - **AppBar Zoom Controls:** Added quick `Zoom In (+)` and `Zoom Out (-)` action buttons in AppBars across Word, Excel, and PowerPoint.
-            - **Retained All v1.6.1 Features:**
-              - Bulletproof offline bilingual OCR engine (English + Hindi) with native Devanagari ML Kit weights and ProGuard rules.
-              - Authentic Microsoft Office visual branding and ribbon layouts.
+            ### 🚀 What's New in v1.7.0 (The Top-5 Triple Powerhouse):
+            - **1. The PDF Powerhouse Suite:**
+              - **Digital Signature (Fill & Sign):** Fingerprint/pen canvas with legal ink colors (Royal Blue, Black, Crimson, Green) and 1-tap transparent placement onto any PDF page.
+              - **Smart PDF Compressor:** 1-tap offline compression optimizing streams and downsampling images for easy WhatsApp and email sharing (<2MB).
+              - **Multi-PDF Merge:** Select 2 or more PDFs to combine into a unified, organized document.
+              - **Page Split & Extraction:** Export select page ranges into standalone PDFs.
+            - **2. Photo-to-Spreadsheet (Table Extractor):**
+              - 100% on-device spatial table parsing: photograph any printed table, price list, invoice, or receipt and convert it directly into an editable Microsoft Excel (`.xlsx`) sheet.
+            - **3. Liquid Mode & Offline Text-to-Speech (TTS):**
+              - **Responsive Liquid Reflow:** Eliminates pinch fatigue by reflowing PDF pages into continuous mobile reading mode with font scaling (A-/A+) and reading themes (Paper White, Sepia Warmth, AMOLED Night).
+              - **Natural Voice Reader (TTS):** Listen to documents hands-free with background playback, speed control (0.75x to 2.0x), and bilingual language switching (English & Hindi).
             - **Version Bump:**
-              - Updated to `v1.6.2 • Build 24`.
+              - Updated to `v1.7.0 • Build 25`.
 
             ### 📲 Direct 1-Click APK Download:
             Download the official signed release directly to your Android device below:
           files: |
             build/app/outputs/flutter-apk/SG-Reader.apk
-            build/app/outputs/flutter-apk/SG-Reader-v1.6.2.apk
+            build/app/outputs/flutter-apk/SG-Reader-v1.7.0.apk

@@ -18,6 +18,9 @@ import '../services/scanner_service.dart';
 import '../services/ocr_service.dart';
 import 'ocr_result_screen.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import '../services/table_extractor_service.dart';
+import '../services/pdf_powerhouse_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -312,10 +315,234 @@ class _HomeScreenState extends State<HomeScreen> {
                 _launchOcrPicker();
               },
             ),
+            const SizedBox(height: 12),
+            ListTile(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              tileColor: SGTheme.bgDark,
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF107C41).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.table_chart, color: Color(0xFF107C41)),
+              ),
+              title: const Text("Photo to Excel (Table Extractor)", style: TextStyle(color: SGTheme.text, fontWeight: FontWeight.w600)),
+              subtitle: const Text("Capture printed table/bill and convert to editable .xlsx", style: TextStyle(color: SGTheme.textSecondary, fontSize: 11)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _launchTableExtractorPicker();
+              },
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              tileColor: SGTheme.bgDark,
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFC43E1C).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.merge_type, color: Color(0xFFC43E1C)),
+              ),
+              title: const Text("Merge Multiple PDFs", style: TextStyle(color: SGTheme.text, fontWeight: FontWeight.w600)),
+              subtitle: const Text("Combine 2 or more PDF documents into a single file", style: TextStyle(color: SGTheme.textSecondary, fontSize: 11)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _launchMergePdfPicker();
+              },
+            ),
           ],
         ),
       ),
     );
+  }
+
+  void _launchTableExtractorPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: SGTheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Photo-to-Spreadsheet (Table Extractor)",
+              style: TextStyle(color: SGTheme.text, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              "100% Offline • Converts printed tables and receipts to editable Excel (.xlsx)",
+              style: TextStyle(color: SGTheme.textSecondary, fontSize: 12),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              tileColor: SGTheme.bgDark,
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF107C41).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.camera_alt_outlined, color: Color(0xFF107C41)),
+              ),
+              title: const Text("Capture Table with Camera", style: TextStyle(color: SGTheme.text, fontWeight: FontWeight.w600)),
+              subtitle: const Text("Photograph any printed table, price list, or invoice", style: TextStyle(color: SGTheme.textSecondary, fontSize: 11)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                _runTableExtractorFromImageSource(ImageSource.camera);
+              },
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              tileColor: SGTheme.bgDark,
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF107C41).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.photo_library_outlined, color: Color(0xFF107C41)),
+              ),
+              title: const Text("Select Table Photo from Gallery", style: TextStyle(color: SGTheme.text, fontWeight: FontWeight.w600)),
+              subtitle: const Text("Pick an existing image or screenshot with table grid", style: TextStyle(color: SGTheme.textSecondary, fontSize: 11)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                _runTableExtractorFromImageSource(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _runTableExtractorFromImageSource(ImageSource source) async {
+    bool dialogShowing = false;
+    try {
+      final picker = ImagePicker();
+      final photo = await picker.pickImage(source: source);
+      if (photo == null || !mounted) return;
+
+      dialogShowing = true;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => AlertDialog(
+          backgroundColor: SGTheme.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          content: const Row(
+            children: [
+              CircularProgressIndicator(color: Color(0xFF107C41)),
+              SizedBox(width: 20),
+              Expanded(
+                child: Text(
+                  "Extracting table grid & numbers into Excel...",
+                  style: TextStyle(color: SGTheme.text, fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ).then((_) => dialogShowing = false);
+
+      final tableService = TableExtractorService();
+      final excelDoc = await tableService.extractTableToExcel(photo.path);
+
+      if (mounted) {
+        if (dialogShowing) {
+          Navigator.of(context, rootNavigator: true).pop();
+          dialogShowing = false;
+        }
+        await _docService.saveRecentDocument(excelDoc);
+        _loadData();
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => ExcelEditorScreen(document: excelDoc)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        if (dialogShowing) {
+          Navigator.of(context, rootNavigator: true).pop();
+          dialogShowing = false;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Table extraction note: $e"),
+            backgroundColor: SGTheme.accentDeep,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _launchMergePdfPicker() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+        allowMultiple: true,
+      );
+
+      if (result == null || result.paths.length < 2) {
+        if (mounted && result != null && result.paths.length == 1) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Please select at least 2 PDF files to merge.")),
+          );
+        }
+        return;
+      }
+
+      final validPaths = result.paths.whereType<String>().toList();
+      if (validPaths.length < 2) return;
+
+      bool dialogShowing = true;
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const AlertDialog(
+          backgroundColor: SGTheme.surface,
+          content: Row(
+            children: [
+              CircularProgressIndicator(color: SGTheme.accent),
+              SizedBox(width: 20),
+              Text("Merging PDF documents...", style: TextStyle(color: Colors.white)),
+            ],
+          ),
+        ),
+      ).then((_) => dialogShowing = false);
+
+      final powerhouse = PdfPowerhouseService();
+      final mergedDoc = await powerhouse.mergePdfs(inputPaths: validPaths);
+
+      if (mounted) {
+        if (dialogShowing) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+        await _docService.saveRecentDocument(mergedDoc);
+        _loadData();
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => PdfViewerScreen(document: mergedDoc)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to merge PDFs: $e"), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   void _launchOcrPicker() {

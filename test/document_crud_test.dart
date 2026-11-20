@@ -15,6 +15,7 @@ import 'package:sg_reader/services/update_service.dart';
 import 'package:sg_reader/services/security_service.dart';
 import 'package:sg_reader/services/watermark_service.dart';
 import 'package:sg_reader/services/ocr_service.dart';
+import 'package:sg_reader/services/pdf_powerhouse_service.dart';
 import 'package:sg_reader/constants/branding.dart';
 import 'package:sg_reader/models/document_file.dart';
 
@@ -301,9 +302,9 @@ void main() {
     // -------------------------------------------------------------
     test('UpdateService: Version code dynamically synchronizes with BrandConstants', () {
       expect(UpdateService.currentVersionCode, BrandConstants.buildNumber);
-      expect(UpdateService.currentVersionCode, 24);
-      expect(BrandConstants.appVersion, "1.6.2");
-      expect(BrandConstants.fullVersionDisplay, "v1.6.2 • Build 24");
+      expect(UpdateService.currentVersionCode, 25);
+      expect(BrandConstants.appVersion, "1.7.0");
+      expect(BrandConstants.fullVersionDisplay, "v1.7.0 • Build 25");
     });
 
     test('OcrResult: Bilingual text extraction and word statistics modeling', () {
@@ -570,6 +571,59 @@ void main() {
       final verifiedDoc = PdfDocument(inputBytes: updatedBytes);
       expect(verifiedDoc.pages.count, 1);
       verifiedDoc.dispose();
+    });
+
+    // -------------------------------------------------------------
+    // 13. PDF POWERHOUSE: MERGE, SPLIT, COMPRESS & TEXT EXTRACTION
+    // -------------------------------------------------------------
+    test('PdfPowerhouse: Merge 2 PDFs, Extract Text & Compress', () async {
+      final powerhouse = PdfPowerhouseService();
+
+      // Create PDF 1
+      final pdf1File = File('${tempDir.path}/doc1.pdf');
+      final doc1 = PdfDocument();
+      doc1.pages.add().graphics.drawString("Page 1 Content", PdfStandardFont(PdfFontFamily.helvetica, 14));
+      await pdf1File.writeAsBytes(doc1.saveSync());
+      doc1.dispose();
+
+      // Create PDF 2
+      final pdf2File = File('${tempDir.path}/doc2.pdf');
+      final doc2 = PdfDocument();
+      doc2.pages.add().graphics.drawString("Page 2 Content", PdfStandardFont(PdfFontFamily.helvetica, 14));
+      await pdf2File.writeAsBytes(doc2.saveSync());
+      doc2.dispose();
+
+      // 1. Test Merge
+      final mergedDoc = await powerhouse.mergePdfs(
+        inputPaths: [pdf1File.path, pdf2File.path],
+        mergedFileName: 'merged_test.pdf',
+      );
+      expect(File(mergedDoc.path).existsSync(), true);
+
+      final verifiedMerged = PdfDocument(inputBytes: await File(mergedDoc.path).readAsBytes());
+      expect(verifiedMerged.pages.count, 2);
+      verifiedMerged.dispose();
+
+      // 2. Test Text Extraction (Liquid Mode Reflow)
+      final pagesText = await powerhouse.extractPagesText(mergedDoc.path);
+      expect(pagesText.length, 2);
+      expect(pagesText[0].contains("Page 1 Content"), true);
+      expect(pagesText[1].contains("Page 2 Content"), true);
+
+      // 3. Test Extract Pages (Split)
+      final splitDoc = await powerhouse.extractPages(
+        inputPath: mergedDoc.path,
+        pageIndices: [0],
+        outputFileName: 'split_page1.pdf',
+      );
+      expect(File(splitDoc.path).existsSync(), true);
+      final verifiedSplit = PdfDocument(inputBytes: await File(splitDoc.path).readAsBytes());
+      expect(verifiedSplit.pages.count, 1);
+      verifiedSplit.dispose();
+
+      // 4. Test Compress PDF
+      final compressedDoc = await powerhouse.compressPdf(mergedDoc.path);
+      expect(File(compressedDoc.path).existsSync(), true);
     });
   });
 }

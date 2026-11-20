@@ -5,7 +5,10 @@ import 'package:share_plus/share_plus.dart';
 import '../constants/theme.dart';
 import '../models/document_file.dart';
 import '../services/document_service.dart';
+import '../services/pdf_powerhouse_service.dart';
 import '../widgets/zoom_controls_dock.dart';
+import '../widgets/signature_pad_dialog.dart';
+import '../widgets/liquid_reader_view.dart';
 
 class PdfViewerScreen extends StatefulWidget {
   final DocumentFile document;
@@ -19,12 +22,18 @@ class PdfViewerScreen extends StatefulWidget {
 class _PdfViewerScreenState extends State<PdfViewerScreen> {
   late PdfViewerController _pdfViewerController;
   final GlobalKey<SfPdfViewerState> _pdfViewerKey = GlobalKey();
+  final PdfPowerhouseService _powerhouseService = PdfPowerhouseService();
   Key _reloadKey = UniqueKey();
   int _currentPage = 1;
   int _totalPages = 0;
   bool _isLoading = true;
   String? _errorMessage;
   double _currentZoom = 1.0;
+
+  // Liquid Reflow & Accessibility TTS
+  bool _isLiquidMode = false;
+  List<String> _extractedPagesText = [];
+  bool _isLoadingLiquid = false;
 
   // Search feature
   bool _isSearching = false;
@@ -83,6 +92,144 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error sharing file: $e")),
       );
+    }
+  }
+
+  Future<void> _toggleLiquidMode() async {
+    if (_isLiquidMode) {
+      setState(() => _isLiquidMode = false);
+      return;
+    }
+
+    if (_extractedPagesText.isNotEmpty) {
+      setState(() => _isLiquidMode = true);
+      return;
+    }
+
+    setState(() => _isLoadingLiquid = true);
+    try {
+      final pages = await _powerhouseService.extractPagesText(widget.document.path);
+      setState(() {
+        _extractedPagesText = pages;
+        _isLiquidMode = true;
+        _isLoadingLiquid = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingLiquid = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Could not reflow document: $e")),
+        );
+      }
+    }
+  }
+
+  Future<void> _showFillAndSignDialog() async {
+    final signatureBytes = await SignaturePadDialog.show(context);
+    if (signatureBytes == null || !mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: SGTheme.accent),
+      ),
+    );
+
+    try {
+      final targetPage = (_currentPage - 1).clamp(0, (_totalPages > 0 ? _totalPages - 1 : 0));
+      // Standard signature stamp rect (bottom-right: x: 340, y: 680, w: 200, h: 90)
+      const stampRect = Rect.fromLTWH(340, 680, 200, 90);
+
+      final signedPath = await _powerhouseService.stampSignature(
+        pdfPath: widget.document.path,
+        signaturePngBytes: signatureBytes,
+        pageIndex: targetPage,
+        stampRect: stampRect,
+      );
+
+      if (mounted) {
+        Navigator.pop(context); // close loader
+        setState(() {
+          _reloadKey = UniqueKey();
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("✅ Signature stamped on Page $_currentPage & saved!"),
+            backgroundColor: const Color(0xFF107C41),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // close loader
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to stamp signature: $e"), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _compressPdf() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          color: SGTheme.surface,
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: SGTheme.accent),
+                SizedBox(height: 16),
+                Text("Optimizing & Compressing PDF...", style: TextStyle(color: Colors.white)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final compressedDoc = await _powerhouseService.compressPdf(widget.document.path);
+      if (mounted) {
+        Navigator.pop(context); // close loader
+        final originalKb = (widget.document.sizeInBytes / 1024).round();
+        final compressedKb = (compressedDoc.sizeInBytes / 1024).round();
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: SGTheme.surface,
+            title: const Text("PDF Compressed Successfully", style: TextStyle(color: Colors.white)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Original Size: $originalKb KB", style: const TextStyle(color: SGTheme.textSecondary)),
+                Text("Compressed Size: $compressedKb KB", style: const TextStyle(color: Color(0xFF107C41), fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+                Text("Saved to: ${compressedDoc.name}", style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("OK", style: TextStyle(color: SGTheme.accent)),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Compression error: $e"), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -436,6 +583,19 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
               ),
         actions: [
           IconButton(
+            icon: Icon(
+              _isLiquidMode ? Icons.auto_stories : Icons.auto_stories_outlined,
+              color: _isLiquidMode ? Colors.amber : SGTheme.accent,
+            ),
+            tooltip: _isLiquidMode ? "Exit Liquid Reflow" : "Liquid Mode (Mobile Reflow & TTS)",
+            onPressed: _toggleLiquidMode,
+          ),
+          IconButton(
+            icon: const Icon(Icons.draw, color: SGTheme.accent, size: 22),
+            tooltip: "Digital Signature (Fill & Sign)",
+            onPressed: _showFillAndSignDialog,
+          ),
+          IconButton(
             icon: Icon(_isSearching ? Icons.close : Icons.search, color: SGTheme.text),
             onPressed: () {
               setState(() {
@@ -460,24 +620,90 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
             tooltip: "Zoom Out",
             onPressed: () => _updateZoom(_currentZoom - 0.25),
           ),
-          IconButton(
-            icon: const Icon(Icons.cleaning_services_outlined, color: SGTheme.accent, size: 22),
-            tooltip: "Remove Watermark from Page",
-            onPressed: _showWatermarkRedactDialog,
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit_note, color: SGTheme.accent, size: 26),
-            tooltip: "Edit / Add Note & Save",
-            onPressed: _showEditPdfDialog,
-          ),
-          IconButton(
-            icon: const Icon(Icons.share_outlined, color: SGTheme.accent),
-            tooltip: "Share PDF",
-            onPressed: _shareDocument,
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: SGTheme.text),
+            tooltip: "PDF Powerhouse Tools",
+            onSelected: (val) {
+              if (val == 'compress') {
+                _compressPdf();
+              } else if (val == 'watermark') {
+                _showWatermarkRedactDialog();
+              } else if (val == 'note') {
+                _showEditPdfDialog();
+              } else if (val == 'share') {
+                _shareDocument();
+              }
+            },
+            itemBuilder: (ctx) => [
+              const PopupMenuItem(
+                value: 'compress',
+                child: Row(
+                  children: [
+                    Icon(Icons.compress, size: 18, color: Color(0xFF107C41)),
+                    SizedBox(width: 8),
+                    Text("Compress PDF (<2MB)"),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'watermark',
+                child: Row(
+                  children: [
+                    Icon(Icons.cleaning_services_outlined, size: 18, color: SGTheme.accent),
+                    SizedBox(width: 8),
+                    Text("Remove Watermark"),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'note',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_note, size: 18, color: SGTheme.accent),
+                    SizedBox(width: 8),
+                    Text("Add Note & Annotate"),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'share',
+                child: Row(
+                  children: [
+                    Icon(Icons.share_outlined, size: 18, color: SGTheme.accent),
+                    SizedBox(width: 8),
+                    Text("Share PDF"),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
-      body: _errorMessage != null
+      body: _isLoadingLiquid
+          ? const Center(
+              child: Card(
+                color: SGTheme.surface,
+                child: Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(color: SGTheme.accent),
+                      SizedBox(height: 16),
+                      Text("Reflowing Pages for Mobile & TTS...", style: TextStyle(color: Colors.white)),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          : _isLiquidMode
+              ? LiquidReaderView(
+                  pagesText: _extractedPagesText,
+                  documentTitle: widget.document.name,
+                  onExitLiquidMode: () => setState(() => _isLiquidMode = false),
+                )
+              : _errorMessage != null
+                  ? Center(
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
