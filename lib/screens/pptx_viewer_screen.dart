@@ -449,12 +449,6 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
                     ),
                   ],
                 ),
-                        onZoomOut: () => _updateZoom(_currentZoom - 0.25),
-                        onResetZoom: () => _updateZoom(1.0),
-                      ),
-                    ),
-                  ],
-                ),
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: const Color(0xFFC43E1C),
